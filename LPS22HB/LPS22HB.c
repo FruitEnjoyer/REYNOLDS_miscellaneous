@@ -57,13 +57,11 @@ HAL_StatusTypeDef LPS22HB_Configure(I2C_HandleTypeDef* hi2c,
     // Load config to sensor registers
     res = HAL_I2C_Mem_Write(hi2c, (uint16_t)LPS22HB_I2CADDR_W, (uint16_t)LPS22HB_REGADDR_INTERRUPT_CFG,
                       3, &config_buff[0], 3, 30);
-    if(res != HAL_OK)
-    {  return res;  }
+    if(res != HAL_OK) return res;
 
     res = HAL_I2C_Mem_Write(hi2c, (uint16_t)LPS22HB_I2CADDR_W, (uint16_t)LPS22HB_REGADDR_CTRL_REG1,
                       3, &config_buff[3], 3, 30);
-    if(res != HAL_OK)
-    {  return res;  }
+    if(res != HAL_OK) return res;
 
     res = HAL_I2C_Mem_Write(hi2c, (uint16_t)LPS22HB_I2CADDR_W, (uint16_t)LPS22HB_REGADDR_FIFO_CTRL,
                       7, &config_buff[6], 7, 30);
@@ -73,7 +71,23 @@ HAL_StatusTypeDef LPS22HB_Configure(I2C_HandleTypeDef* hi2c,
 HAL_StatusTypeDef LPS22HB_GetState(I2C_HandleTypeDef* hi2c,
                                    LPS22HB_state_t* dest)
 {
-    uint8_t rx_buff[8] = {0,};
+    uint8_t rx_buff[13] = {0,};
+    HAL_StatusTypeDef res = HAL_OK;
+
+    res = HAL_I2C_Mem_Read(hi2c, (uint16_t)LPS22HB_I2CADDR_R, (uint16_t)LPS22HB_REGADDR_INTERRUPT_CFG,
+                           3, &rx_buff[0], 3, 30);
+    if(res != HAL_OK) return res;
+
+    res = HAL_I2C_Mem_Read(hi2c, (uint16_t)LPS22HB_I2CADDR_R, (uint16_t)LPS22HB_REGADDR_CTRL_REG1,
+                           3, &rx_buff[3], 3, 30);
+    if(res != HAL_OK) return res;
+
+    res = HAL_I2C_Mem_Read(hi2c, (uint16_t)LPS22HB_I2CADDR_R, (uint16_t)LPS22HB_REGADDR_CTRL_REG1,
+                           7, &rx_buff[6], 7, 30);
+    if(res != HAL_OK) return res;
+
+    // TODO: перевести буффер принятых данных в структуру
+    return res;
 }
 
 HAL_StatusTypeDef LPS22HB_GetData(I2C_HandleTypeDef* hi2c,
@@ -82,7 +96,12 @@ HAL_StatusTypeDef LPS22HB_GetData(I2C_HandleTypeDef* hi2c,
     uint8_t rx_buff[5] = {0,};
     HAL_StatusTypeDef res = HAL_OK;
 
-    res = HAL_I2C_Mem_Read(hi2c, (uint16_t)LPS22HB_I2CADDR_R, MemAddress, MemAddSize, pData, Size, Timeout);
+    res = HAL_I2C_Mem_Read(hi2c, (uint16_t)LPS22HB_I2CADDR_R,
+                           (uint16_t)LPS22HB_REGADDR_PRESS_OUT_XL,
+                           5, rx_buff, 5, 30);
+    if(res != HAL_OK) return res;
+    // TODO: реализовать перевод байтов в давление и температуру
+    return res;
 }
 
 
