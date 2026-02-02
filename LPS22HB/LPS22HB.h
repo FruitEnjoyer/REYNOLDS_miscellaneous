@@ -31,7 +31,7 @@ typedef struct LPS22HB_data
     float pressure, temp;
 } LPS22HB_data_t;
 
-HAL_StatusTypeDef LPS22HB_Init(I2C_HandleTypeDef* hi2c, LPS22HB_state_t* state);
+HAL_StatusTypeDef LPS22HB_Init(I2C_HandleTypeDef* hi2c);
 HAL_StatusTypeDef LPS22HB_Configure(I2C_HandleTypeDef* hi2c, LPS22HB_state_t* newstate);
 HAL_StatusTypeDef LPS22HB_GetState(I2C_HandleTypeDef* hi2c, LPS22HB_state_t* dest);
 HAL_StatusTypeDef LPS22HB_GetData(I2C_HandleTypeDef* hi2c, LPS22HB_data_t* dest);
