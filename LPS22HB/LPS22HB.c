@@ -87,6 +87,9 @@ HAL_StatusTypeDef LPS22HB_GetState(I2C_HandleTypeDef* hi2c,
     if(res != HAL_OK) return res;
 
     // TODO: перевести буффер принятых данных в структуру
+    dest->interrupt_cfg = rx_buff[0];
+    dest->ths_p_l       = rx_buff[1];
+    dest->ths_p_h       = rx_buff[2];
     return res;
 }
 
@@ -100,7 +103,11 @@ HAL_StatusTypeDef LPS22HB_GetData(I2C_HandleTypeDef* hi2c,
                            (uint16_t)LPS22HB_REGADDR_PRESS_OUT_XL,
                            5, rx_buff, 5, 30);
     if(res != HAL_OK) return res;
+
     // TODO: реализовать перевод байтов в давление и температуру
+    uint32_t pressure_bits = ((uint32_t)rx_buff[2] << 16) | (rx_buff[1] << 8) | rx_buff[0];
+    dest->pressure = (float)pressure_bits / 4096.0f;
+
     return res;
 }
 
