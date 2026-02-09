@@ -8,8 +8,8 @@
 #ifndef LPS22HB_DEFINES_H_
 #define LPS22HB_DEFINES_H_
 
-#define LPS22HB_I2CADDR_R  0b1011101
-#define LPS22HB_I2CADDR_W  0b1011100
+#define LPS22HB_I2CADDR_R  0b10111001
+#define LPS22HB_I2CADDR_W  0b10111000
 
 /*----Register addresses----*/               // зачем нужен
 #define LPS22HB_REGADDR_INTERRUPT_CFG  0x0B  // R/W включить возможность генерировать прерывания при событиях
