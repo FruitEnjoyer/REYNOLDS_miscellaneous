@@ -8,33 +8,33 @@
 #ifndef LPS22HB_DEFINES_H_
 #define LPS22HB_DEFINES_H_
 
-#define LPS22HB_I2CADDR_R  0b10111001
-#define LPS22HB_I2CADDR_W  0b10111000
+#define LPS22HB_I2CADDR_R  ((uint16_t)0b10111001)
+#define LPS22HB_I2CADDR_W  ((uint16_t)0b10111000)
 
 /*----Register addresses----*/               // зачем нужен
-#define LPS22HB_REGADDR_INTERRUPT_CFG  0x0B  // R/W включить возможность генерировать прерывания при событиях
-#define LPS22HB_REGADDR_THS_P_L        0x0C  // R/W можно самому задать пороговое давление
-#define LPS22HB_REGADDR_THS_P_H        0x0D  // R/W можно самому задать пороговое давление
-#define LPS22HB_REGADDR_WHO_AM_I       0x0F  // хто я
-#define LPS22HB_REGADDR_CTRL_REG1      0x10  // R/W частота измерений, настройка фильтра, тонкости считывания данных, SPI
-#define LPS22HB_REGADDR_CTRL_REG2      0x11  // R/W reboot, fifo, инкрементится ли адрес при чтении (включи), I2C, soft reset
-#define LPS22HB_REGADDR_CTRL_REG3      0x12  // R/W настройка прерываний и пина DRDY
-#define LPS22HB_REGADDR_FIFO_CTRL      0x14  // R/W режим фифо
-#define LPS22HB_REGADDR_REF_P_XL       0x15  // R/W опорное давление
-#define LPS22HB_REGADDR_REF_P_L        0x16  // R/W опорное давление
-#define LPS22HB_REGADDR_REF_P_H        0x17  // R/W опроное давление
-#define LPS22HB_REGADDR_RPDS_L         0x18  // R/W смещение давления
-#define LPS22HB_REGADDR_RPDS_H         0x19  // R/W смещение давления
-#define LPS22HB_REGADDR_RES_CONF       0x1A  // R/W low-power режим
-#define LPS22HB_REGADDR_INT_SOURCE     0x25  // R инфа о boot и есть ли прерывания
-#define LPS22HB_REGADDR_FIFO_STATUS    0x26  // R инфа о фифо
-#define LPS22HB_REGADDR_STATUS         0x27  // R инфа есть ли новые данные
-#define LPS22HB_REGADDR_PRESS_OUT_XL   0x28  // читать давление
-#define LPS22HB_REGADDR_PRESS_OUT_L    0x29  // читать давление
-#define LPS22HB_REGADDR_PRESS_OUT_H    0x2A  // читать давление
-#define LPS22HB_REGADDR_TEMP_OUT_L     0x2B  // читать температуру
-#define LPS22HB_REGADDR_TEMP_OUT_H     0x2C  // читать температуру
-#define LPS22HB_REGADDR_LPFP_RES       0x33  // R для обнуления фильтра
+#define LPS22HB_REGADDR_INTERRUPT_CFG  ((uint16_t)0x0B)  // R/W включить возможность генерировать прерывания при событиях
+#define LPS22HB_REGADDR_THS_P_L        ((uint16_t)0x0C)  // R/W можно самому задать пороговое давление
+#define LPS22HB_REGADDR_THS_P_H        ((uint16_t)0x0D)  // R/W можно самому задать пороговое давление
+#define LPS22HB_REGADDR_WHO_AM_I       ((uint16_t)0x0F)  // хто я
+#define LPS22HB_REGADDR_CTRL_REG1      ((uint16_t)0x10)  // R/W частота измерений, настройка фильтра, тонкости считывания данных, SPI
+#define LPS22HB_REGADDR_CTRL_REG2      ((uint16_t)0x11)  // R/W reboot, fifo, инкрементится ли адрес при чтении (включи), I2C, soft reset
+#define LPS22HB_REGADDR_CTRL_REG3      ((uint16_t)0x12)  // R/W настройка прерываний и пина DRDY
+#define LPS22HB_REGADDR_FIFO_CTRL      ((uint16_t)0x14)  // R/W режим фифо
+#define LPS22HB_REGADDR_REF_P_XL       ((uint16_t)0x15)  // R/W опорное давление
+#define LPS22HB_REGADDR_REF_P_L        ((uint16_t)0x16)  // R/W опорное давление
+#define LPS22HB_REGADDR_REF_P_H        ((uint16_t)0x17)  // R/W опроное давление
+#define LPS22HB_REGADDR_RPDS_L         ((uint16_t)0x18)  // R/W смещение давления
+#define LPS22HB_REGADDR_RPDS_H         ((uint16_t)0x19)  // R/W смещение давления
+#define LPS22HB_REGADDR_RES_CONF       ((uint16_t)0x1A)  // R/W low-power режим
+#define LPS22HB_REGADDR_INT_SOURCE     ((uint16_t)0x25)  // R инфа о boot и есть ли прерывания
+#define LPS22HB_REGADDR_FIFO_STATUS    ((uint16_t)0x26)  // R инфа о фифо
+#define LPS22HB_REGADDR_STATUS         ((uint16_t)0x27)  // R инфа есть ли новые данные
+#define LPS22HB_REGADDR_PRESS_OUT_XL   ((uint16_t)0x28)  // читать давление
+#define LPS22HB_REGADDR_PRESS_OUT_L    ((uint16_t)0x29)  // читать давление
+#define LPS22HB_REGADDR_PRESS_OUT_H    ((uint16_t)0x2A)  // читать давление
+#define LPS22HB_REGADDR_TEMP_OUT_L     ((uint16_t)0x2B)  // читать температуру
+#define LPS22HB_REGADDR_TEMP_OUT_H     ((uint16_t)0x2C)  // читать температуру
+#define LPS22HB_REGADDR_LPFP_RES       ((uint16_t)0x33)  // R для обнуления фильтра
 
 
 /*----Register defaults----*/
