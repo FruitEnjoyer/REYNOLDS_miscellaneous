@@ -2,6 +2,8 @@
 
 import matplotlib.pyplot as plt
 
+
+# Данные взяты с сайта https://kipia.xyz/thermocouples_calculate/table/type_k/100 (обращение от 17.02.2026)
 filepath = "result.log"
 
 input_ = []
@@ -17,6 +19,7 @@ with open(filepath, 'r') as f:
             input_.append(temp[0])
             rect.append(temp[1])
             black.append(temp[2])
+    f.close()
     plt.figure(1)
     plt.plot(input_, 'o-', linewidth=2)
     plt.plot(rect, 'o-', linewidth=2)
