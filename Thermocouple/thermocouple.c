@@ -63,5 +63,5 @@ float TC_Volts2Temp(float V, float T)
         res = a * V + b;
     }
 
-    return res - T;
+    return res + T;
 }
