@@ -6,8 +6,22 @@
 
 #include "PID.h"
 
+static struct PIDController pid_starter;
+static struct PIDController pid_pump;
+static struct PIDController pid_t_lim;
+static struct PIDController pid_t4_start;
+static struct PIDController pid_t4_hall_err;
+
 /**
- * @brief PID initialization
+ * @brief 
+ * 
+ * @param pid 
+ * @param lim_min 
+ * @param lim_max 
+ * @param int_lim_min 
+ * @param int_lim_max 
+ * @param val_min 
+ * @param val_max 
  */
 void PIDController_Init(struct PIDController *pid, float lim_min, float lim_max,
         float int_lim_min, float int_lim_max, int16_t val_min, int16_t val_max)
@@ -33,8 +47,12 @@ void PIDController_Init(struct PIDController *pid, float lim_min, float lim_max,
 }
 
 /**
- * @brief PID coefficients change
- *
+ * @brief 
+ * 
+ * @param pid 
+ * @param p 
+ * @param i 
+ * @param d 
  */
 void PIDController_REInit(struct PIDController *pid, float p, float i, float d)
 {
@@ -43,8 +61,10 @@ void PIDController_REInit(struct PIDController *pid, float p, float i, float d)
     pid->Kd_real = (d / FREQ_REGULATION);
 }
 
-/*
- * @brief Total reset
+/**
+ * @brief 
+ * 
+ * @param pid 
  */
 void PIDController_Reset(struct PIDController *pid)
 {
@@ -64,7 +84,14 @@ void PIDController_Reset(struct PIDController *pid)
 }
 
 /**
- * @brief PID update
+ * @brief 
+ * 
+ * @param pid 
+ * @param setpoint 
+ * @param measurement 
+ * @param table 
+ * @param zero_point 
+ * @return int 
  */
 int PIDController_Update(struct PIDController *pid, float setpoint,
         float measurement, float table, int zero_point)
@@ -118,6 +145,10 @@ int PIDController_Update(struct PIDController *pid, float setpoint,
 
 }
 
+/**
+ * @brief 
+ * 
+ */
 void PID_setup()
 {
 #if 0

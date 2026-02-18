@@ -1,12 +1,16 @@
 /**
  * @file can_protocol.h
+ * @author ruslan
  * @brief Header for CAN communication interface
  * @date 28.01.2026
- * @author Ruslan Valeev
  */
 
 #ifndef APP_CAN_PROTOCOL_H_
 #define APP_CAN_PROTOCOL_H_
+
+#ifdef _cplusplus
+extern "C"{
+#endif
 
 #include "main.h"
 
@@ -38,6 +42,11 @@ typedef struct MessageData_PumpDriver
 HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan);
 void ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_PumpDriver_t* dest);
 void SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_PumpDriver_t* data);
+#endif
+
+
+#ifdef _cplusplus
+}
 #endif
 
 #endif /* APP_CAN_PROTOCOL_H_ */
