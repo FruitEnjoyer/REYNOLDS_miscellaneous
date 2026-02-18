@@ -2,3 +2,6 @@
 *.pytest_cache
 *__pycache__
 *.so
+Debug
+Release
+build

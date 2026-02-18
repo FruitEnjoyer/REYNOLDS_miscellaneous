@@ -1,9 +1,7 @@
 /**
  * @file PID.c
- * @brief PID regulator implementation
- * @date
  * @author Yuriy Magaram
- * @details
+ * @brief PID regulator implementation
  */
 
 #include "PID.h"
@@ -122,6 +120,7 @@ int PIDController_Update(struct PIDController *pid, float setpoint,
 
 void PID_setup()
 {
+#if 0
     pid_starter.Kp = config.starter_P;
     pid_starter.Ki = config.starter_I;
     pid_starter.Kd = config.starter_D;
@@ -166,4 +165,5 @@ void PID_setup()
     pid_t_lim.maxValue = T_LIM_MAX_VALUE;
 
     //PIDController_Init(&pid_t_lim);
+#endif
 }

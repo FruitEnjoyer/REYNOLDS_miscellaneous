@@ -1,7 +1,7 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
-#include "main.h"
+#include <stdint.h>
 
 #define FREQ_REGULATION 10
 

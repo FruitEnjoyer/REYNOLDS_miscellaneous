@@ -10,10 +10,9 @@
 
 #include "main.h"
 
-// temporary defines
-// in future use -DDEFINE1 -DDEFINE2
-//#define MAINCONTROLLER
-#define PUMPDRIVER
+#if !defined(PUMPDRIVER) && !defined(MAINCONTROLLER)
+  #error "Please define board!"
+#endif
 
 typedef enum Message_ID
 {
