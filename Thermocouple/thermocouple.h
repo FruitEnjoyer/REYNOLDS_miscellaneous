@@ -18,7 +18,18 @@ extern "C" {
 #define THERMOCOUPLE_MINVOLT   (-6.458f) // mV
 #define THERMOCOUPLE_MAXVOLT   (54.819f) // mV
 
-float TC_Volts2Temp(float V, float T);
+/**
+ * @brief Thermocouple status enumeration
+ * @details TC_STATUS_OK - thermocouple works properly
+ *          TC_STATUS_FAIL - thermocouple damaged / not connected
+ */
+typedef enum TC_status{
+    TC_STATUS_OK = 0, 
+    TC_STATUS_FAIL
+} TC_status_t;
+
+TC_status_t TC_Volts2Temp(float V, float T, float* out);
+TC_status_t TC_ERR_Control(float T);
 
 #ifdef __cplusplus
 }

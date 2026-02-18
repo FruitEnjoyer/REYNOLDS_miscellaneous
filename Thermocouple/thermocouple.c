@@ -36,14 +36,16 @@ static float temps[THERMOCOUPLE_POINTNUM] = {
 
 /**
  * @brief Converts thermocouple voltage to temperature
- * 
- * @param volts ADC voltage
+ *
+ * @param V ADC voltage
  * @param T temperature shift
- * @return float 
+ * @param out temperature shift (updates only if thermocouple works properly)
+ * @return TC_status_t Thermocouple status
  */
-float TC_Volts2Temp(float V, float T)
+TC_status_t TC_Volts2Temp(float V, float T, float* out)
 {
     float res = 0.0f;
+    TC_status_t status = TC_STATUS_OK;
 
     if(V <= THERMOCOUPLE_MINVOLT)
     { res = temps[0]; }
@@ -62,6 +64,26 @@ float TC_Volts2Temp(float V, float T)
 
         res = a * V + b;
     }
+    res = res + T;
+    status = TC_ERR_Control(res);
 
-    return res + T;
+    // Write temperature only if thermocouple plugged in
+    if(status == TC_STATUS_OK)
+    { *out = res; }
+
+    return status;
+}
+
+/**
+ * @brief Function prevents wrong data from thermocouple
+ * 
+ * @param T Testing evaluated temperature from thermocouple
+ * @return TC_status_t Thermocouple status
+ */
+TC_status_t TC_ERR_Control(float T)
+{
+    TC_status_t status = TC_STATUS_OK;
+    if((T > 2000.0f) || (T < -200.0f))
+    { status = TC_STATUS_FAIL; }
+    return status;
 }
