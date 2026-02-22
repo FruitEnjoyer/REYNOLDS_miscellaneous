@@ -6,16 +6,10 @@
 
 #include "PID.h"
 
-static struct PIDController pid_starter;
-static struct PIDController pid_pump;
-static struct PIDController pid_t_lim;
-static struct PIDController pid_t4_start;
-static struct PIDController pid_t4_hall_err;
-
 /**
- * @brief 
+ * @brief Regulator initialization
  * 
- * @param pid 
+ * @param pid pointer to PID regulator control structure
  * @param lim_min 
  * @param lim_max 
  * @param int_lim_min 
@@ -23,7 +17,7 @@ static struct PIDController pid_t4_hall_err;
  * @param val_min 
  * @param val_max 
  */
-void PIDController_Init(struct PIDController *pid, float lim_min, float lim_max,
+void PID_Init(struct PIDController *pid, float lim_min, float lim_max,
         float int_lim_min, float int_lim_max, int16_t val_min, int16_t val_max)
 {
     pid->limMin = lim_min;
@@ -43,18 +37,17 @@ void PIDController_Init(struct PIDController *pid, float lim_min, float lim_max,
     pid->prevMeasurement = 0.0f;
 
     pid->out = 0.0f;
-
 }
 
 /**
- * @brief 
+ * @brief Change PID coefficients
  * 
- * @param pid 
- * @param p 
- * @param i 
- * @param d 
+ * @param pid pointer to PID regulator control structure
+ * @param p proportional coefficient
+ * @param i integral coefficient
+ * @param d differential coefficient
  */
-void PIDController_REInit(struct PIDController *pid, float p, float i, float d)
+void PID_ReInit(struct PIDController *pid, float p, float i, float d)
 {
     pid->Kp_real = (p / FREQ_REGULATION);
     pid->Ki_real = (i / FREQ_REGULATION);
@@ -62,11 +55,11 @@ void PIDController_REInit(struct PIDController *pid, float p, float i, float d)
 }
 
 /**
- * @brief 
+ * @brief Set PIDController variables to zero state
  * 
- * @param pid 
+ * @param pid pointer to PID regulator control structure
  */
-void PIDController_Reset(struct PIDController *pid)
+void PID_Reset(struct PIDController *pid)
 {
     pid->delta = pid->limMax - pid->limMin;
     pid->integrator = 0.0f;
@@ -84,16 +77,16 @@ void PIDController_Reset(struct PIDController *pid)
 }
 
 /**
- * @brief 
+ * @brief Get PID control signal based on measurements & controller state 
  * 
- * @param pid 
+ * @param pid pointer to PID regulator control structure
  * @param setpoint 
  * @param measurement 
  * @param table 
  * @param zero_point 
- * @return int 
+ * @return float control signal
  */
-int PIDController_Update(struct PIDController *pid, float setpoint,
+float PID_Step(struct PIDController *pid, float setpoint,
         float measurement, float table, int zero_point)
 {
     // вычисление ошибки 500
@@ -108,9 +101,7 @@ int PIDController_Update(struct PIDController *pid, float setpoint,
     // контроль по выходу за пределы
     if (pid->integrator > pid->limMaxInt)
     {
-
         pid->integrator = pid->limMaxInt;
-
     }
     else if (pid->integrator < pid->limMinInt)
     {
@@ -142,7 +133,6 @@ int PIDController_Update(struct PIDController *pid, float setpoint,
     pid->prevMeasurement = measurement;
 
     return pid->out;
-
 }
 
 /**

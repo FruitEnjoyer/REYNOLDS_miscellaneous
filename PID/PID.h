@@ -8,7 +8,7 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 extern "C"{
 #endif
 
@@ -77,20 +77,21 @@ typedef struct PIDController
 
     float out;
 
+    // ПИД коэффициенты с учетом частоты регулирования
     float Kp_real, Ki_real, Kd_real;
 
     uint8_t update_flag;
 } PIDController_t;
 
-void PIDController_Init(struct PIDController *pid, float lim_min, float lim_max,
+void PID_Init(struct PIDController *pid, float lim_min, float lim_max,
         float int_lim_min, float int_lim_max, int16_t val_min, int16_t val_max);
-void PIDController_REInit(struct PIDController *pid, float p, float i, float d);
-void PIDController_Reset(struct PIDController *pid);
-int PIDController_Update(struct PIDController *pid, float setpoint,
+void PID_ReInit(struct PIDController *pid, float p, float i, float d);
+void PID_Reset(struct PIDController *pid);
+float PID_Step(struct PIDController *pid, float setpoint,
         float measurement, float table, int zero_point);
 void PID_setup();
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 }
 #endif
 
