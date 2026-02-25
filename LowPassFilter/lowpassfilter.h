@@ -5,8 +5,8 @@
  * @date 16.02.2026
  */
 
-#ifndef __LOWPASSFILTER_H_
-#define __LOWPASSFILTER_H_
+#ifndef LOWPASSFILTER_H_
+#define LOWPASSFILTER_H_
 
 #ifdef __cplusplus
 extern "C" {

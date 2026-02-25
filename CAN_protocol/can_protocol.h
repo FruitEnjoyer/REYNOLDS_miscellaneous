@@ -5,8 +5,8 @@
  * @date 28.01.2026
  */
 
-#ifndef APP_CAN_PROTOCOL_H_
-#define APP_CAN_PROTOCOL_H_
+#ifndef CAN_PROTOCOL_H_
+#define CAN_PROTOCOL_H_
 
 #ifdef __cplusplus
 extern "C"{
@@ -58,4 +58,4 @@ HAL_StatusTypeDef SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, Messa
 }
 #endif
 
-#endif /* APP_CAN_PROTOCOL_H_ */
+#endif /* CAN_PROTOCOL_H_ */

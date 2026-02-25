@@ -6,8 +6,8 @@
  * @details Thermocouple type K
  */
 
-#ifndef __THERMOCOUPLE_H_
-#define __THERMOCOUPLE_H_
+#ifndef THERMOCOUPLE_H_
+#define THERMOCOUPLE_H_
 
 #ifdef __cplusplus
 extern "C" {

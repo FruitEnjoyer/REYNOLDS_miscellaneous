@@ -5,8 +5,8 @@
  * @note Edited by ruslan
  */
 
-#ifndef PID_CONTROLLER_H
-#define PID_CONTROLLER_H
+#ifndef PID_H_
+#define PID_H_
 
 #ifdef __cplusplus
 extern "C"{
