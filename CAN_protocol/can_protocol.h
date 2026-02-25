@@ -8,7 +8,7 @@
 #ifndef APP_CAN_PROTOCOL_H_
 #define APP_CAN_PROTOCOL_H_
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 extern "C"{
 #endif
 
@@ -18,8 +18,14 @@ extern "C"{
   #error "Please define board!"
 #endif
 
+
+/**
+ * @brief CAN message identificator
+ */
 typedef enum Message_ID
 {
+    DEFAULT_ID = 0xFFFF,
+
     // commands from main controller
     COMMAND_PUMPDRIVER = 0x0100,
 
@@ -27,25 +33,28 @@ typedef enum Message_ID
     RESPONSE_PUMPDRIVER = 0x0200
 } Message_ID_t;
 
-typedef struct MessageData_PumpDriver
+/**
+ * @brief Data structure for communication via CAN
+ *
+ * @details Each substructure contains data for dedicated device
+ *          to be transceived
+ */
+typedef struct MessageData
 {
+    Message_ID_t id;
     struct{
         uint16_t pwm_pump, pwm_heat;
-    } topump;
-    struct{
         uint16_t pump_speed, pump_current;
-    } tocpu;
-} MessageData_PumpDriver_t;
+    } pumpdriver;
+} MessageData_t;
 
 
-#ifdef PUMPDRIVER
 HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan);
-void ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_PumpDriver_t* dest);
-void SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_PumpDriver_t* data);
-#endif
+HAL_StatusTypeDef ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_t* dest);
+HAL_StatusTypeDef SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_t* data);
 
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 }
 #endif
 

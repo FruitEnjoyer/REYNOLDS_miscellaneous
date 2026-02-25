@@ -7,9 +7,13 @@
  */
 #include "can_protocol.h"
 
-#ifdef PUMPDRIVER
 
-
+/**
+ * @brief 
+ * 
+ * @param fdcan pointer to an FDCAN handle structure
+ * @return HAL_StatusTypeDef result of configurating
+ */
 HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan)
 {
     HAL_StatusTypeDef res = HAL_OK;
@@ -24,7 +28,7 @@ HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan)
     res = HAL_FDCAN_ConfigFilter(fdcan, &filterConfig);
     if(res != HAL_OK) return res;
 #if 0
-    // TODO: возможно будет необходимо для включения фильтров
+    // TODO: it might be necessary to call this function
     res = HAL_FDCAN_ConfigGlobalFilter(fdcan,
                                     NonMatchingStd,
                                     NonMatchingExt,
@@ -34,22 +38,55 @@ HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan)
     return res;
 }
 
-void ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_PumpDriver_t* dest)
+/**
+ * @brief Read FDCAN Rx buffer & interpret its data
+ * 
+ * @param fdcan pointer to an FDCAN handle structure
+ * @param dest pointer to a destination data structure
+ * @return HAL_StatusTypeDef result of reading
+ */
+HAL_StatusTypeDef ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_t* dest)
 {
+    HAL_StatusTypeDef status = HAL_OK;
     FDCAN_RxHeaderTypeDef msgHeader;
-    uint8_t data[8];
+    uint8_t data[8] = {0,};
 
-    HAL_FDCAN_GetRxMessage(fdcan, FDCAN_RX_FIFO0, &msgHeader, data);
-
-    if(msgHeader.Identifier == COMMAND_PUMPDRIVER)
+    status = HAL_FDCAN_GetRxMessage(fdcan, FDCAN_RX_FIFO0, &msgHeader, data);
+    if(status == HAL_OK)
     {
-        dest->topump.pwm_pump = (uint16_t)((data[0] << 8) + data[1]);
-        dest->topump.pwm_heat = (uint16_t)((data[2] << 8) + data[3]);
+        switch(msgHeader.Identifier)
+        {
+        case DEFAULT_ID:
+            // Impossible to receive message with default id
+            break;
+        case COMMAND_PUMPDRIVER:
+            dest->pumpdriver.pwm_heat = (uint16_t)((data[0] << 8) + data[1]);
+            dest->pumpdriver.pwm_pump = (uint16_t)((data[2] << 8) + data[3]);
+            break;
+        case RESPONSE_PUMPDRIVER:
+            dest->pumpdriver.pump_current = (uint16_t)((data[0] << 8) + data[1]);
+            dest->pumpdriver.pump_speed = (uint16_t)((data[2] << 8) + data[3]);
+            break;
+        default:
+            // Received message with unknown id
+            break;
+        }
+        dest->id = msgHeader.Identifier;
     }
+    return status;
 }
 
-void SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_PumpDriver_t* data)
+/**
+ * @brief 
+ * 
+ * @param fdcan pointer to an FDCAN handle structure
+ * @param id CAN message identificator
+ * @param data pointer to source data structure
+ * @return HAL_StatusTypeDef result of sending
+ */
+HAL_StatusTypeDef SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_t* data)
 {
+    HAL_StatusTypeDef status = HAL_OK;
     uint8_t buff[8] = {0};
     FDCAN_TxHeaderTypeDef msgHeader = {
         .Identifier = id,
@@ -62,16 +99,32 @@ void SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_PumpDr
         .TxEventFifoControl = FDCAN_NO_TX_EVENTS,
         .MessageMarker = 0x45
     };
-
-    buff[0] = (uint8_t)(data->tocpu.pump_speed >> 8);
-    buff[1] = (uint8_t)(data->tocpu.pump_speed >> 0);
-    buff[2] = (uint8_t)(data->tocpu.pump_current >> 8);
-    buff[3] = (uint8_t)(data->tocpu.pump_current >> 0);
-
-    if(HAL_FDCAN_GetTxFifoFreeLevel(fdcan) > 0)
+    switch(id)
     {
-        HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &msgHeader, buff);
+    case DEFAULT_ID:
+        break;
+    case COMMAND_PUMPDRIVER:
+        buff[0] = (uint8_t)(data->pumpdriver.pwm_heat >> 8);
+        buff[1] = (uint8_t)(data->pumpdriver.pwm_heat);
+        buff[2] = (uint8_t)(data->pumpdriver.pwm_pump >> 8);
+        buff[3] = (uint8_t)(data->pumpdriver.pwm_pump);
+        break;
+    case RESPONSE_PUMPDRIVER:
+        buff[0] = (uint8_t)(data->pumpdriver.pump_current >> 8);
+        buff[1] = (uint8_t)(data->pumpdriver.pump_current);
+        buff[2] = (uint8_t)(data->pumpdriver.pump_speed >> 8);
+        buff[3] = (uint8_t)(data->pumpdriver.pump_speed);
+        break;
+    default:
+        break;
     }
+    // Forbidden to send message with default id
+    if(HAL_FDCAN_GetTxFifoFreeLevel(fdcan) > 0 && id != DEFAULT_ID)
+    {
+        status = HAL_FDCAN_AddMessageToTxFifoQ(fdcan, &msgHeader, buff);
+    }
+    else
+    {  status = HAL_ERROR;  }
+    return status;
 }
-#endif
 
