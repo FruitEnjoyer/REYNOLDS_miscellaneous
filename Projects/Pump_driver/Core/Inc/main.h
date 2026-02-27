@@ -79,12 +79,6 @@ void Error_Handler(void);
 #define LED_GPIO_Port GPIOB
 #define HEAT_PWM_Pin GPIO_PIN_8
 #define HEAT_PWM_GPIO_Port GPIOA
-#define PUMP_PWMN_1_Pin GPIO_PIN_3
-#define PUMP_PWMN_1_GPIO_Port GPIOB
-#define PUMP_PWMN_2_Pin GPIO_PIN_4
-#define PUMP_PWMN_2_GPIO_Port GPIOB
-#define PUMP_PWMN_3_Pin GPIO_PIN_5
-#define PUMP_PWMN_3_GPIO_Port GPIOB
 #define PUMP_PWM_1_Pin GPIO_PIN_6
 #define PUMP_PWM_1_GPIO_Port GPIOB
 #define CONTROLLER_HEAT_Pin GPIO_PIN_7
