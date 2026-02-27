@@ -30,6 +30,7 @@ uint8_t I2CScanner_InspectBus(I2C_HandleTypeDef* hi2c)
     }
     return responces;
 }
+
 #else
 
 uint8_t I2CScanner_InspectBus(I2C_HandleTypeDef* hi2c)
