@@ -5,15 +5,10 @@
  * @author Ruslan Valeev
  * @details Implemented basic get-set communication functions
  */
+
 #include "can_protocol.h"
 
 
-/**
- * @brief 
- * 
- * @param fdcan pointer to an FDCAN handle structure
- * @return HAL_StatusTypeDef result of configurating
- */
 HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan)
 {
     HAL_StatusTypeDef res = HAL_OK;
@@ -38,13 +33,6 @@ HAL_StatusTypeDef ConfigureFDCAN(FDCAN_HandleTypeDef* fdcan)
     return res;
 }
 
-/**
- * @brief Read FDCAN Rx buffer & interpret its data
- * 
- * @param fdcan pointer to an FDCAN handle structure
- * @param dest pointer to a destination data structure
- * @return HAL_StatusTypeDef result of reading
- */
 HAL_StatusTypeDef ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_t* dest)
 {
     HAL_StatusTypeDef status = HAL_OK;
@@ -71,19 +59,11 @@ HAL_StatusTypeDef ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_t* dest)
             // Received message with unknown id
             break;
         }
-        dest->id = msgHeader.Identifier;
+        dest->recv_id = msgHeader.Identifier;
     }
     return status;
 }
 
-/**
- * @brief 
- * 
- * @param fdcan pointer to an FDCAN handle structure
- * @param id CAN message identificator
- * @param data pointer to source data structure
- * @return HAL_StatusTypeDef result of sending
- */
 HAL_StatusTypeDef SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_t* data)
 {
     HAL_StatusTypeDef status = HAL_OK;
