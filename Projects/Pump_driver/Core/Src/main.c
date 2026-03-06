@@ -19,7 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "cordic.h"
 #include "fdcan.h"
+#include "fmac.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -49,15 +51,12 @@
 
 /* USER CODE BEGIN PV */
 bldc_t pump = {
-    .poles_number = 3,
-    .speed = 0.0f,
-
-    .speedtracking.ccr = 0,
-    .speedtracking.overflow = 0,
-    .speedtracking.direction = FORWARD,
-
-    .pwm.state = 0,
-    .pwm.magnitude = 0.08
+        .PWM_TIM = TIM8,
+        .ROTATE_TIM = TIM6,
+        .pole_number = 3,
+        .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE),
+        .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE),
+        .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE)
 };
 /* USER CODE END PV */
 
@@ -70,7 +69,7 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 MessageData_t can_data = {
-        .id = 0,
+        .recv_id = 0,
         .pumpdriver.pwm_pump = 0,
         .pumpdriver.pwm_heat = 0,
         .pumpdriver.pump_speed = 0,
@@ -119,42 +118,37 @@ int main(void)
   MX_ADC2_Init();
   MX_ADC3_Init();
   MX_TIM6_Init();
+  MX_CORDIC_Init();
+  MX_FMAC_Init();
   /* USER CODE BEGIN 2 */
     HAL_FDCAN_Start(&hfdcan1);
     HAL_FDCAN_ActivateNotification(&hfdcan1,
             FDCAN_IT_LIST_RX_FIFO0 | FDCAN_IT_LIST_SMSG,
             FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
     HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
-#if 0
+
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
     HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
     HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
     HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_3);
-#endif
-    HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_1);
-    HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_2);
-    HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_3);
+    BLDC_Configure(&pump);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
+#if 1
         if(pumppwm_tickcounter + 2 < HAL_GetTick())
         {
-            BLDC_IC_setPWM(&pump, &htim8);
-            pump.pwm.state = (pump.pwm.state + 1) % 12;
+            BLDC_SetPWM(&pump);
+            pump.field_state = (pump.field_state + 6 - 1) % 6;
             pumppwm_tickcounter += 2;
         }
 
-        if(pumpgetspeed_tickcounter + 100 < HAL_GetTick())
-        {
-            BLDC_getspeed(&pump, &htim5);
-            pumpgetspeed_tickcounter += 100;
-        }
-
+#elif 0
         if(can_tickcounter + 1000 < HAL_GetTick())
         {
             SendMessage(&hfdcan1, COMMAND_PUMPDRIVER, &can_data);
@@ -164,12 +158,14 @@ int main(void)
             can_data.pumpdriver.pwm_pump += 4;
             can_tickcounter += 1000;
         }
-
+#endif
+#if 1
         if (led_tickcounter + 500 < HAL_GetTick())
         {
             HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
             led_tickcounter += 500;
         }
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

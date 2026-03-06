@@ -7,82 +7,89 @@
 
 #include "bldc.h"
 
-static int8_t sign[12][3] = {
-        {1, -1, -1},
-        {1, -1, 0},
-        {1, -1, 1},
-        {0, -1, 1},
-        {-1, -1, 1},
-        {-1, 0, 1},
-        {-1, 1, 1},
-        {-1, 1, 0},
-        {-1, 1, -1},
-        {0, 1, -1},
-        {1, 1, -1},
-        {1, 0, -1}
-#if 0
-        {0, 1, -1},
-        {-1, 1, 0},
-        {-1, 0, 1},
-        {0, -1, 1},
-        {1, -1, 0},
-        {1, 0, -1}
-#endif
-};
-
-
-
-void BLDC_getspeed(bldc_t* bldc, TIM_HandleTypeDef *htim)
+void BLDC_Configure(bldc_t* bldc)
 {
-    // tick time [sec]
-    float Ttick = (float)(htim->Instance->PSC + 1) / HAL_RCC_GetHCLKFreq();
+    // TODO: перенастроить делители на указанную частоту шим
+    // TODO: сконфигурировать таймеры если нужно
 
-    // time between 2 period elapsed callback calls [sec]
-    float Toverflow = Ttick * (htim->Instance->ARR + 1);
-    UNUSED(Toverflow);
+    bldc->field_state = STATE_OFF;
+    bldc->duty1 = 0;
+    bldc->duty2 = 0;
 
-    // time since last capture observed [sec]
-    float t = Ttick * bldc->speedtracking.ccr;
-    
-    // rotation frequency [rotation / sec]
-    bldc->speed = 1 / t / bldc->poles_number;
+    BLDC_SetPWM(bldc);
 }
 
 
-void BLDC_IC_speedtracking(bldc_t* bldc, TIM_HandleTypeDef *htim)
+
+void BLDC_SetPWM(bldc_t* bldc)
 {
-    if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+    /*
+     *            A     B     C
+     * State1:   HIGH  LOW   OFF
+     * State2:   HIGH  OFF   LOW
+     * State3:   OFF   HIGH  LOW
+     * State4:   LOW   HIGH  OFF
+     * State5:   LOW   OFF   HIGH
+     * State6:   OFF   LOW   HIGH
+     *
+     * StateOFF: OFF   OFF   OFF
+     */
+    switch(bldc->field_state)
     {
-        /*
-         * Save ticks counted by timer.
-         * Take into account possible timer overflow.
-         */
-        bldc->speedtracking.ccr = (uint64_t)(htim->Instance->CCR1) +
-                bldc->speedtracking.overflow * (htim->Instance->ARR + 1);
-        // Set timer counter to 0
-        htim->Instance->CNT = 0;
-        // Reset overflow counter
-        bldc->speedtracking.overflow = 0;
-    }
-    if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
-    {
-        // TODO: implement rotation direction handling
-    }
-    if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
-    {
-        // TODO: implement rotation direction handling
+    case STATE_OFF:
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch2 | bldc->pwm_CCER_ch3);
+        break;
+    case STATE_1:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch2);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCR1 = bldc->duty1;
+        bldc->PWM_TIM->CCR2 = bldc->duty2;
+        break;
+    case STATE_2:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch2);
+        bldc->PWM_TIM->CCR1 = bldc->duty1;
+        bldc->PWM_TIM->CCR3 = bldc->duty2;
+        break;
+    case STATE_3:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch2 | bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch1);
+        bldc->PWM_TIM->CCR2 = bldc->duty1;
+        bldc->PWM_TIM->CCR3 = bldc->duty2;
+        break;
+    case STATE_4:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch2);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCR1 = bldc->duty2;
+        bldc->PWM_TIM->CCR2 = bldc->duty1;
+        break;
+    case STATE_5:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch2);
+        bldc->PWM_TIM->CCR1 = bldc->duty2;
+        bldc->PWM_TIM->CCR3 = bldc->duty1;
+        break;
+    case STATE_6:
+        bldc->PWM_TIM->CCER |= (bldc->pwm_CCER_ch2 | bldc->pwm_CCER_ch3);
+        bldc->PWM_TIM->CCER &= ~(bldc->pwm_CCER_ch1);
+        bldc->PWM_TIM->CCR2 = bldc->duty2;
+        bldc->PWM_TIM->CCR3 = bldc->duty1;
+        break;
+    default:
+        break;
     }
 }
 
-void BLDC_IC_setPWM(bldc_t* bldc, TIM_HandleTypeDef *htim_pwm)
+void BLDC_SetCtrl(bldc_t* bldc, float ctrl)
 {
-    uint32_t max = (htim_pwm->Instance->ARR + 1);
-    uint8_t state = bldc->pwm.state % 12;
-    float ctrl = bldc->pwm.magnitude;
+    //uint16_t duty = (bldc->ctrl_magnitude)(bldc->PWM_TIM->ARR + 1);
 
-    htim_pwm->Instance->CCR1 = (uint32_t)((1 + sign[state][0] * ctrl) * max / 2);
-    htim_pwm->Instance->CCR2 = (uint32_t)((1 + sign[state][1] * ctrl) * max / 2);
-    htim_pwm->Instance->CCR3 = (uint32_t)((1 + sign[state][2] * ctrl) * max / 2);
+    if(ctrl >= 0)
+    {
+
+    }
+    else
+    {
+
+    }
 }
-
-

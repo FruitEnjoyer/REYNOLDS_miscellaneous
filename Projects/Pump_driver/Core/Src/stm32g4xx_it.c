@@ -56,8 +56,11 @@ MessageData_t can_msg_data = {0};
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern CORDIC_HandleTypeDef hcordic;
 extern FDCAN_HandleTypeDef hfdcan1;
+extern FMAC_HandleTypeDef hfmac;
 extern TIM_HandleTypeDef htim5;
+extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
@@ -243,6 +246,48 @@ void TIM5_IRQHandler(void)
   /* USER CODE BEGIN TIM5_IRQn 1 */
 
   /* USER CODE END TIM5_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM6 global interrupt, DAC1 and DAC3 channel underrun error interrupts.
+  */
+void TIM6_DAC_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+
+  /* USER CODE END TIM6_DAC_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+
+  /* USER CODE END TIM6_DAC_IRQn 1 */
+}
+
+/**
+  * @brief This function handles CORDIC interrupt.
+  */
+void CORDIC_IRQHandler(void)
+{
+  /* USER CODE BEGIN CORDIC_IRQn 0 */
+
+  /* USER CODE END CORDIC_IRQn 0 */
+  HAL_CORDIC_IRQHandler(&hcordic);
+  /* USER CODE BEGIN CORDIC_IRQn 1 */
+
+  /* USER CODE END CORDIC_IRQn 1 */
+}
+
+/**
+  * @brief This function handles FMAC interrupt.
+  */
+void FMAC_IRQHandler(void)
+{
+  /* USER CODE BEGIN FMAC_IRQn 0 */
+
+  /* USER CODE END FMAC_IRQn 0 */
+  HAL_FMAC_IRQHandler(&hfmac);
+  /* USER CODE BEGIN FMAC_IRQn 1 */
+
+  /* USER CODE END FMAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

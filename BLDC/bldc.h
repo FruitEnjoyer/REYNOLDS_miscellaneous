@@ -13,34 +13,41 @@ extern "C"{
 #endif
 
 #include "main.h"
-
-
-
+#include <stdint.h>
 
 typedef struct bldc{
-    uint8_t poles_number; // number of rotor poles
-    float speed;
-    struct{
-        uint64_t ccr; // last captured ticks
-        uint64_t overflow; // timer overflow counter
-        enum{
-            FORWARD,
-            REVERSE
-        } direction;
-        HAL_TIM_ActiveChannel channels[3];
-    } speedtracking;
-    struct{
-        uint8_t state;
-        float magnitude; // stator field magnitude
-        uint32_t channels[3];
-    } pwm;
+    // Motor characteristics
+    const uint8_t pole_number; // Number of rotor magnetic poles
+    const float KV; // Back-EMF constant
+    float pwm_freq; //
+
+    // Power variables
+    enum {
+        STATE_OFF = -1,
+        STATE_1 = 0, STATE_2,
+        STATE_3, STATE_4,
+        STATE_5, STATE_6
+    } field_state; // Stator field state
+    TIM_TypeDef* PWM_TIM; // Timer for PWM generation
+    TIM_TypeDef* ROTATE_TIM; // Timer for field state switching
+    uint32_t duty1, duty2;
+    const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
+    //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
+
+    // BEMF variables
+    uint64_t ccr, overflow; // last captured ticks & IC overflow
+    enum {
+        BEMF_UNDEF,
+        BEMF_FORWARD,
+        BEMF_REVERSE
+    } dir; // Rotor spinning direction based on back-EMF detection
 } bldc_t;
 
+void BLDC_Configure(bldc_t* bldc);
 
-void BLDC_getspeed(bldc_t* bldc, TIM_HandleTypeDef *htim);
+void BLDC_SetPWM(bldc_t* bldc);
+void BLDC_SetCtrl(bldc_t* bldc, ctrl);
 
-void BLDC_IC_speedtracking(bldc_t* bldc, TIM_HandleTypeDef *htim);
-void BLDC_IC_setPWM(bldc_t* bldc, TIM_HandleTypeDef *htim);
 
 #ifdef __cplusplus
 }
