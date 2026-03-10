@@ -32,7 +32,7 @@ typedef struct bldc{
     } field_state; // Stator field state
     TIM_TypeDef* PWM_TIM; // Timer for PWM generation
     TIM_TypeDef* IC_TIM; // Timer for field state switching
-    uint32_t duty1, duty2;
+    volatile uint32_t duty1, duty2;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     enum {
         FORWARD,
