@@ -52,12 +52,15 @@
 /* USER CODE BEGIN PV */
 bldc_t pump = {
         .PWM_TIM = TIM8,
-        .ROTATE_TIM = TIM6,
+        .IC_TIM = TIM5,
         .pole_number = 3,
         .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE),
         .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE),
-        .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE)
+        .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE),
+        .state_dir = FORWARD
 };
+
+uint8_t rx_buff[4] = {0,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -117,7 +120,6 @@ int main(void)
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_ADC3_Init();
-  MX_TIM6_Init();
   MX_CORDIC_Init();
   MX_FMAC_Init();
   /* USER CODE BEGIN 2 */
@@ -127,20 +129,17 @@ int main(void)
             FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
     HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
 
-    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-    HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-    HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
-    HAL_TIMEx_PWMN_Start(&htim8, TIM_CHANNEL_3);
     BLDC_Configure(&pump);
+    BLDC_Start(&pump);
+
+    HAL_UART_Receive_IT(&huart1, rx_buff, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
-#if 1
+#if 0
         if(pumppwm_tickcounter + 2 < HAL_GetTick())
         {
             BLDC_SetPWM(&pump);

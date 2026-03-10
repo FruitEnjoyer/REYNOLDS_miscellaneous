@@ -15,6 +15,8 @@ extern "C"{
 #include "main.h"
 #include <stdint.h>
 
+#define BLDC_DEFAULTCTRL  (0.05f)
+
 typedef struct bldc{
     // Motor characteristics
     const uint8_t pole_number; // Number of rotor magnetic poles
@@ -29,9 +31,13 @@ typedef struct bldc{
         STATE_5, STATE_6
     } field_state; // Stator field state
     TIM_TypeDef* PWM_TIM; // Timer for PWM generation
-    TIM_TypeDef* ROTATE_TIM; // Timer for field state switching
+    TIM_TypeDef* IC_TIM; // Timer for field state switching
     uint32_t duty1, duty2;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
+    enum {
+        FORWARD,
+        REVERSE
+    } state_dir;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
 
     // BEMF variables
@@ -45,8 +51,10 @@ typedef struct bldc{
 
 void BLDC_Configure(bldc_t* bldc);
 
+void BLDC_Start(bldc_t* bldc);
+
 void BLDC_SetPWM(bldc_t* bldc);
-void BLDC_SetCtrl(bldc_t* bldc, ctrl);
+void BLDC_SetCtrl(bldc_t* bldc, float ctrl);
 
 
 #ifdef __cplusplus

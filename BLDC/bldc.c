@@ -9,6 +9,11 @@
 
 void BLDC_Configure(bldc_t* bldc)
 {
+    // Disable IC timer
+    bldc->IC_TIM->CR1 &= ~TIM_CR1_CEN;
+    // Disable PWM timer
+    bldc->PWM_TIM->CR1 &= ~TIM_CR1_CEN;
+
     // TODO: перенастроить делители на указанную частоту шим
     // TODO: сконфигурировать таймеры если нужно
 
@@ -16,7 +21,29 @@ void BLDC_Configure(bldc_t* bldc)
     bldc->duty1 = 0;
     bldc->duty2 = 0;
 
+    // Enable IC timer interrupts
+    bldc->IC_TIM->DIER |= (TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE);
+    // Enable IC timer channels
+    bldc->IC_TIM->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E);
+    // Set IC timer counter to zero
+    bldc->IC_TIM->CNT = 0;
+    // Set IC timer ARR register to init state
+    bldc->IC_TIM->ARR = 400000 - 1;
+
+    // Set MOE bits
+    bldc->PWM_TIM->BDTR |= TIM_BDTR_MOE;
+}
+
+void BLDC_Start(bldc_t* bldc)
+{
+    // Set default duties & enable/disable channels
+    BLDC_SetCtrl(bldc, BLDC_DEFAULTCTRL);
     BLDC_SetPWM(bldc);
+
+    // Enable IC timer
+    bldc->IC_TIM->CR1 |= TIM_CR1_CEN;
+    // Enable PWM timer
+    bldc->PWM_TIM->CR1 |= TIM_CR1_CEN;
 }
 
 
@@ -82,14 +109,16 @@ void BLDC_SetPWM(bldc_t* bldc)
 
 void BLDC_SetCtrl(bldc_t* bldc, float ctrl)
 {
-    //uint16_t duty = (bldc->ctrl_magnitude)(bldc->PWM_TIM->ARR + 1);
+    uint16_t duty = (uint16_t)(ctrl * (bldc->PWM_TIM->ARR + 1));
 
-    if(ctrl >= 0)
+    if(bldc->state_dir == FORWARD)
     {
-
+        bldc->duty1 = duty;
+        bldc->duty2 = 0;
     }
     else
     {
-
+        bldc->duty1 = 0;
+        bldc->duty2 = duty;
     }
 }
