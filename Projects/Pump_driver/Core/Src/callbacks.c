@@ -18,34 +18,71 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     /*
      * @brief Catch BEMF, calibrate TIM->ARR, calculate rotor speed
      */
-    if(htim->Instance == TIM5)
+    if(htim->Instance == pump.ictim->Instance)
     {
-
+        if(pump.ictim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+        {
+            if(pump.state_dir == FORWARD)
+            {
+                if(pump.field_state == STATE_3)
+                    pump.field_state = STATE_4;
+                else if(pump.field_state == STATE_6)
+                    pump.field_state = STATE_1;
+            }
+            else
+            {
+                if(pump.field_state == STATE_3)
+                    pump.field_state = STATE_2;
+                else if(pump.field_state == STATE_6)
+                    pump.field_state = STATE_5;
+            }
+        }
+        else if(pump.ictim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
+        {
+            if(pump.state_dir == FORWARD)
+            {
+                if(pump.field_state == STATE_2)
+                    pump.field_state = STATE_3;
+                else if(pump.field_state == STATE_5)
+                    pump.field_state = STATE_6;
+            }
+            else
+            {
+                if(pump.field_state == STATE_2)
+                    pump.field_state = STATE_1;
+                else if(pump.field_state == STATE_5)
+                    pump.field_state = STATE_4;
+            }
+        }
+        else if(pump.ictim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
+        {
+            if(pump.state_dir == FORWARD)
+            {
+                if(pump.field_state == STATE_1)
+                    pump.field_state = STATE_2;
+                else if(pump.field_state == STATE_4)
+                    pump.field_state = STATE_5;
+            }
+            else
+            {
+                if(pump.field_state == STATE_1)
+                    pump.field_state = STATE_6;
+                else if(pump.field_state == STATE_4)
+                    pump.field_state = STATE_3;
+            }
+        }
+        __HAL_TIM_SET_COUNTER(pump.ictim, 0);
+        BLDC_SetPWM(&pump);
+        pump.needrestart_flag = 0;
     }
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    /**
-     * @brief Switching PWM states on BLDC phases
-     */
-    if(htim->Instance == TIM5)
+    if(htim->Instance == pump.ictim->Instance)
     {
-        switch(pump.state_dir)
-        {
-        case FORWARD:
-            pump.field_state = (pump.field_state + 1) % 6;
-            break;
-        case REVERSE:
-            pump.field_state = (pump.field_state + 6 - 1) % 6;
-            break;
-        default:
-            break;
-        }
-        BLDC_SetPWM(&pump);
-        pump.IC_TIM->DIER |= (TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE);
+        pump.needrestart_flag = 1;
     }
-
     // TODO: перезапустить таймер?
 }
 

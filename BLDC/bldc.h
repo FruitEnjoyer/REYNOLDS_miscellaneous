@@ -30,14 +30,16 @@ typedef struct bldc{
         STATE_3, STATE_4,
         STATE_5, STATE_6
     } field_state; // Stator field state
-    TIM_TypeDef* PWM_TIM; // Timer for PWM generation
-    TIM_TypeDef* IC_TIM; // Timer for field state switching
+    TIM_HandleTypeDef* pwmtim;
+    TIM_HandleTypeDef* ictim;
+    TIM_HandleTypeDef* ictim2;
     volatile uint32_t duty1, duty2;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     enum {
         FORWARD,
         REVERSE
     } state_dir;
+    uint8_t needrestart_flag;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
 
     // BEMF variables

@@ -51,13 +51,14 @@
 
 /* USER CODE BEGIN PV */
 bldc_t pump = {
-        .PWM_TIM = TIM8,
-        .IC_TIM = TIM5,
-        .pole_number = 3,
+        .pwmtim = &htim8,
+        .ictim = &htim5,
+        .pole_number = 7,
         .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE),
         .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE),
         .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE),
-        .state_dir = FORWARD
+        .state_dir = REVERSE,
+        .needrestart_flag = 0
 };
 
 uint8_t rx_buff[4] = {0,};
@@ -89,7 +90,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
     uint32_t led_tickcounter = 0, can_tickcounter = 0, pumpgetspeed_tickcounter = 0;
-    uint32_t pumppwm_tickcounter = 0;
+    uint32_t pumppwm_tickcounter = 0, pumprestart = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -129,7 +130,6 @@ int main(void)
             FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
     HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
 
-    BLDC_Configure(&pump);
     BLDC_Start(&pump);
 
     HAL_UART_Receive_IT(&huart1, rx_buff, 1);
@@ -139,8 +139,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while(1)
     {
+        if(pumprestart + 10 < HAL_GetTick() && pump.needrestart_flag)
+        {
+            if(pump.state_dir == FORWARD)
+            {
+                pump.field_state = (pump.field_state + 1) % 6;
+            }
+            else
+            {
+                pump.field_state = (pump.field_state + 6 - 1) % 6;
+            }
+            BLDC_SetPWM(&pump);
+            pumprestart += 10;
+        }
 #if 0
-        if(pumppwm_tickcounter + 2 < HAL_GetTick())
+        if(pumppwm_tickcounter + 2 < HAL_GetTick() && pumppwm_tickcounter < 4000)
         {
             BLDC_SetPWM(&pump);
             pump.field_state = (pump.field_state + 6 - 1) % 6;
