@@ -8,6 +8,9 @@
 #include "main.h"
 #include "BLDC/bldc.h"
 #include "uart_debug/uart_debug.h"
+#include "LowPassFilter/lowpassfilter.h"
+
+lpfilter_t pumpfilter;
 
 extern TIM_HandleTypeDef htim8;
 extern uint8_t rx_buff[4];
@@ -36,6 +39,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 else if(pump.field_state == STATE_6)
                     pump.field_state = STATE_5;
             }
+            pump.last_ccr = pump.ictim->Instance->CCR1;
         }
         else if(pump.ictim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
@@ -53,6 +57,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 else if(pump.field_state == STATE_5)
                     pump.field_state = STATE_4;
             }
+            pump.last_ccr = pump.ictim->Instance->CCR2;
         }
         else if(pump.ictim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
         {
@@ -70,10 +75,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 else if(pump.field_state == STATE_4)
                     pump.field_state = STATE_3;
             }
+            pump.last_ccr = pump.ictim->Instance->CCR3;
         }
+        pump.last_ccr = (uint32_t)LPF_filter(&pumpfilter, pump.last_ccr);;
         __HAL_TIM_SET_COUNTER(pump.ictim, 0);
         BLDC_SetPWM(&pump);
-        pump.needrestart_flag = 0;
+        pump.control_mode = INTERRUPT;
     }
 }
 
@@ -81,7 +88,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if(htim->Instance == pump.ictim->Instance)
     {
-        pump.needrestart_flag = 1;
+        pump.control_mode = MANUAL;
+        __HAL_TIM_ENABLE_IT(pump.ictim, TIM_IT_UPDATE);
     }
     // TODO: перезапустить таймер?
 }

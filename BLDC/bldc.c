@@ -12,6 +12,9 @@ void BLDC_Configure(bldc_t* bldc)
     bldc->duty1 = 0;
     bldc->duty2 = 0;
     bldc->field_state = STATE_OFF;
+    bldc->last_ccr = 0xFFFFFFFF;
+    bldc->control_mode = MANUAL;
+    bldc->state_dir = REVERSE;
 }
 
 void BLDC_Start(bldc_t* bldc)
@@ -109,4 +112,9 @@ void BLDC_SetCtrl(bldc_t* bldc, float ctrl)
         bldc->duty1 = 0;
         bldc->duty2 = duty;
     }
+}
+
+void BLDC_CalcSpeed(bldc_t* bldc)
+{
+    bldc->speed = (float)(HAL_RCC_GetPCLK1Freq() * 60.0f) / (bldc->last_ccr * 6.f * bldc->pole_number * (bldc->ictim->Instance->PSC + 1.f));
 }

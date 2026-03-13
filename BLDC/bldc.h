@@ -15,7 +15,8 @@ extern "C"{
 #include "main.h"
 #include <stdint.h>
 
-#define BLDC_DEFAULTCTRL  (0.05f)
+#define BLDC_DEFAULTCTRL    (0.10f)
+#define BLDC_SPEEDTHRESHOLD (10) // threshold between manual & interrupt control modes [revolutions per second]
 
 typedef struct bldc{
     // Motor characteristics
@@ -32,14 +33,19 @@ typedef struct bldc{
     } field_state; // Stator field state
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
-    TIM_HandleTypeDef* ictim2;
+    volatile uint32_t last_ccr;
+    float speed;
     volatile uint32_t duty1, duty2;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
+    uint32_t ic_freq;
     enum {
         FORWARD,
         REVERSE
     } state_dir;
-    uint8_t needrestart_flag;
+    enum {
+        INTERRUPT = 0,
+        MANUAL
+    } control_mode;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
 
     // BEMF variables
@@ -57,6 +63,8 @@ void BLDC_Start(bldc_t* bldc);
 
 void BLDC_SetPWM(bldc_t* bldc);
 void BLDC_SetCtrl(bldc_t* bldc, float ctrl);
+
+void BLDC_CalcSpeed(bldc_t* bldc);
 
 
 #ifdef __cplusplus

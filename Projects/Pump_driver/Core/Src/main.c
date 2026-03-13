@@ -22,6 +22,7 @@
 #include "cordic.h"
 #include "fdcan.h"
 #include "fmac.h"
+#include "iwdg.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -30,6 +31,8 @@
 /* USER CODE BEGIN Includes */
 #include "CAN_protocol/can_protocol.h"
 #include "BLDC/bldc.h"
+#include <stdio.h>
+#include "LowPassFilter/lowpassfilter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,18 +53,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+extern lpfilter_t pumpfilter;
 bldc_t pump = {
         .pwmtim = &htim8,
         .ictim = &htim5,
         .pole_number = 7,
         .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE),
         .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE),
-        .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE),
-        .state_dir = REVERSE,
-        .needrestart_flag = 0
+        .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE)
 };
 
 uint8_t rx_buff[4] = {0,};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,8 +92,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-    uint32_t led_tickcounter = 0, can_tickcounter = 0, pumpgetspeed_tickcounter = 0;
+    uint32_t led_tickcounter = 0, can_tickcounter = 0, pumpgetspeed_tickcounter = 0, uart_tick = 0;
     uint32_t pumppwm_tickcounter = 0, pumprestart = 0;
+    char txbuff[64] = {0,}, txlen = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -123,6 +127,7 @@ int main(void)
   MX_ADC3_Init();
   MX_CORDIC_Init();
   MX_FMAC_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
     HAL_FDCAN_Start(&hfdcan1);
     HAL_FDCAN_ActivateNotification(&hfdcan1,
@@ -130,16 +135,19 @@ int main(void)
             FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
     HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
 
+    LPF_init(&pumpfilter, BLACKMAN);
     BLDC_Start(&pump);
 
-    HAL_UART_Receive_IT(&huart1, rx_buff, 1);
+    //HAL_UART_Receive_IT(&huart1, rx_buff, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
-        if(pumprestart + 10 < HAL_GetTick() && pump.needrestart_flag)
+        HAL_IWDG_Refresh(&hiwdg);
+#if 1
+        if(pumprestart + 4 < HAL_GetTick() && pump.control_mode == MANUAL)
         {
             if(pump.state_dir == FORWARD)
             {
@@ -150,7 +158,15 @@ int main(void)
                 pump.field_state = (pump.field_state + 6 - 1) % 6;
             }
             BLDC_SetPWM(&pump);
-            pumprestart += 10;
+            pumprestart += 4;
+        }
+#endif
+        if(uart_tick + 100 < HAL_GetTick())
+        {
+            BLDC_CalcSpeed(&pump);
+            txlen = sprintf(txbuff, "SPEED: %f [rot/min]\r\n", pump.speed);
+            HAL_UART_Transmit_IT(&huart1, (uint8_t*)txbuff, txlen);
+            uart_tick += 100;
         }
 #if 0
         if(pumppwm_tickcounter + 2 < HAL_GetTick() && pumppwm_tickcounter < 4000)
@@ -201,8 +217,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV5;
