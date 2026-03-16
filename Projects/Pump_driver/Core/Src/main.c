@@ -31,8 +31,8 @@
 /* USER CODE BEGIN Includes */
 #include "CAN_protocol/can_protocol.h"
 #include "BLDC/bldc.h"
-#include <stdio.h>
 #include "LowPassFilter/lowpassfilter.h"
+#include "uart_debug/uart_debug.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,7 +70,7 @@ uint8_t rx_buff[4] = {0,};
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void HeartbeatLED_Update();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -92,9 +92,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-    uint32_t led_tickcounter = 0, can_tickcounter = 0, pumpgetspeed_tickcounter = 0, uart_tick = 0;
-    uint32_t pumppwm_tickcounter = 0, pumprestart = 0;
-    char txbuff[64] = {0,}, txlen = 0;
+    uint32_t can_tickcounter = 0;
+    uint32_t ctrl_tick = 0;
+    float speed_target = 1300.f, ctrl_value = BLDC_DEFAULTCTRL;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -136,6 +136,7 @@ int main(void)
     HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
 
     LPF_init(&pumpfilter, BLACKMAN);
+    BLDC_Configure(&pump);
     BLDC_Start(&pump);
 
     //HAL_UART_Receive_IT(&huart1, rx_buff, 1);
@@ -147,36 +148,26 @@ int main(void)
     {
         HAL_IWDG_Refresh(&hiwdg);
 #if 1
-        if(pumprestart + 4 < HAL_GetTick() && pump.control_mode == MANUAL)
+        BLDC_Restart(&pump);
+#endif
+#if 1
+        if(ctrl_tick + 10 < HAL_GetTick() && pump.control_mode_t == INTERRUPT)
         {
-            if(pump.state_dir == FORWARD)
+            if(pump.speed < speed_target - 5.f)
             {
-                pump.field_state = (pump.field_state + 1) % 6;
+                ctrl_value += 0.0001;
+                BLDC_SetCtrl(&pump, ctrl_value);
             }
-            else
+            else if(pump.speed > speed_target + 5.f)
             {
-                pump.field_state = (pump.field_state + 6 - 1) % 6;
+                ctrl_value -= 0.0001;
+                BLDC_SetCtrl(&pump, ctrl_value);
             }
-            BLDC_SetPWM(&pump);
-            pumprestart += 4;
+            ctrl_tick += 10;
         }
 #endif
-        if(uart_tick + 100 < HAL_GetTick())
-        {
-            BLDC_CalcSpeed(&pump);
-            txlen = sprintf(txbuff, "SPEED: %f [rot/min]\r\n", pump.speed);
-            HAL_UART_Transmit_IT(&huart1, (uint8_t*)txbuff, txlen);
-            uart_tick += 100;
-        }
+        DBG_SendInfo_BLDC(&pump);
 #if 0
-        if(pumppwm_tickcounter + 2 < HAL_GetTick() && pumppwm_tickcounter < 4000)
-        {
-            BLDC_SetPWM(&pump);
-            pump.field_state = (pump.field_state + 6 - 1) % 6;
-            pumppwm_tickcounter += 2;
-        }
-
-#elif 0
         if(can_tickcounter + 1000 < HAL_GetTick())
         {
             SendMessage(&hfdcan1, COMMAND_PUMPDRIVER, &can_data);
@@ -187,13 +178,7 @@ int main(void)
             can_tickcounter += 1000;
         }
 #endif
-#if 1
-        if (led_tickcounter + 500 < HAL_GetTick())
-        {
-            HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-            led_tickcounter += 500;
-        }
-#endif
+        HeartbeatLED_Update();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -217,13 +202,14 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV5;
-  RCC_OscInitStruct.PLL.PLLN = 64;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+  RCC_OscInitStruct.PLL.PLLN = 20;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -245,14 +231,20 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
-  /** Enables the Clock Security System
-  */
-  HAL_RCC_EnableCSS();
 }
 
 /* USER CODE BEGIN 4 */
+void HeartbeatLED_Update()
+{
+    static uint32_t heartbeat_ticks = 0;
+    static uint32_t heartbear_delta = 500;
 
+    if (heartbeat_ticks + heartbear_delta < HAL_GetTick())
+    {
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        heartbeat_ticks += 500;
+    }
+}
 /* USER CODE END 4 */
 
 /**

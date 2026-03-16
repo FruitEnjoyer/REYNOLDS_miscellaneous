@@ -13,8 +13,8 @@ void BLDC_Configure(bldc_t* bldc)
     bldc->duty2 = 0;
     bldc->field_state = STATE_OFF;
     bldc->last_ccr = 0xFFFFFFFF;
-    bldc->control_mode = MANUAL;
-    bldc->state_dir = REVERSE;
+    bldc->control_mode_t = MANUAL;
+    bldc->state_dir_t = FORWARD;
 }
 
 void BLDC_Start(bldc_t* bldc)
@@ -102,7 +102,7 @@ void BLDC_SetCtrl(bldc_t* bldc, float ctrl)
 {
     uint16_t duty = (uint16_t)(ctrl * (bldc->pwmtim->Instance->ARR + 1));
 
-    if(bldc->state_dir == FORWARD)
+    if(bldc->state_dir_t == FORWARD)
     {
         bldc->duty1 = duty;
         bldc->duty2 = 0;
@@ -117,4 +117,28 @@ void BLDC_SetCtrl(bldc_t* bldc, float ctrl)
 void BLDC_CalcSpeed(bldc_t* bldc)
 {
     bldc->speed = (float)(HAL_RCC_GetPCLK1Freq() * 60.0f) / (bldc->last_ccr * 6.f * bldc->pole_number * (bldc->ictim->Instance->PSC + 1.f));
+    if(bldc->state_dir_t == REVERSE)
+    {
+        bldc->speed *= -1;
+    }
+}
+
+void BLDC_Restart(bldc_t* bldc)
+{
+    static uint32_t bldc_restart_ticks = 0;
+    static uint32_t bldc_restart_delta = 4;
+
+    if(bldc_restart_ticks + bldc_restart_delta < HAL_GetTick() && bldc->control_mode_t == MANUAL)
+    {
+        if(bldc->state_dir_t == FORWARD)
+        {
+            bldc->field_state = (bldc->field_state + 1) % 6;
+        }
+        else if(bldc->state_dir_t == REVERSE)
+        {
+            bldc->field_state = (bldc->field_state + 6 - 1) % 6;
+        }
+        BLDC_SetPWM(bldc);
+        bldc_restart_ticks += bldc_restart_delta;
+    }
 }
