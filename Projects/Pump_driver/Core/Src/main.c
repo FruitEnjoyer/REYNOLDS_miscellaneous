@@ -19,9 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
-#include "cordic.h"
 #include "fdcan.h"
-#include "fmac.h"
 #include "iwdg.h"
 #include "tim.h"
 #include "usart.h"
@@ -33,6 +31,7 @@
 #include "BLDC/bldc.h"
 #include <stdio.h>
 #include "LowPassFilter/lowpassfilter.h"
+#include "PID/PID.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,32 +55,35 @@
 extern lpfilter_t pumpfilter;
 bldc_t pump = {
         .pwmtim = &htim8,
-        .ictim = &htim5,
+        .ictim1 = &htim5,
+        .ictim2 = &htim2,
+        .statetim = &htim6,
         .pole_number = 7,
         .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE),
         .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE),
         .pwm_CCER_ch3 = (TIM_CCER_CC3E | TIM_CCER_CC3NE)
 };
 
-uint8_t rx_buff[4] = {0,};
+PID_controller_t pumppid = {
+        .kp = 0.000000030,
+        .ki = 0.00000000,
+        .kd = 0.00000000,
+        .integral = 0,
+        .preverr = 0,
+        .out = 0
+};
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void HeartbeatLED_Update();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-MessageData_t can_data = {
-        .recv_id = 0,
-        .pumpdriver.pwm_pump = 0,
-        .pumpdriver.pwm_heat = 0,
-        .pumpdriver.pump_speed = 0,
-        .pumpdriver.pump_current = 0
-};
+
 /* USER CODE END 0 */
 
 /**
@@ -92,9 +94,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-    uint32_t led_tickcounter = 0, can_tickcounter = 0, pumpgetspeed_tickcounter = 0, uart_tick = 0;
-    uint32_t pumppwm_tickcounter = 0, pumprestart = 0;
-    char txbuff[64] = {0,}, txlen = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -125,75 +125,21 @@ int main(void)
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_ADC3_Init();
-  MX_CORDIC_Init();
-  MX_FMAC_Init();
   MX_IWDG_Init();
+  MX_TIM6_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-    HAL_FDCAN_Start(&hfdcan1);
-    HAL_FDCAN_ActivateNotification(&hfdcan1,
-            FDCAN_IT_LIST_RX_FIFO0 | FDCAN_IT_LIST_SMSG,
-            FDCAN_TX_BUFFER0 | FDCAN_TX_BUFFER1 | FDCAN_TX_BUFFER2);
-    HAL_GPIO_WritePin(CAN_STB_GPIO_Port, CAN_STB_Pin, GPIO_PIN_RESET);
-
     LPF_init(&pumpfilter, BLACKMAN);
-    BLDC_Start(&pump);
-
-    //HAL_UART_Receive_IT(&huart1, rx_buff, 1);
+    pump.control_mode = START;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
+        BLDC_Execute(&pump);
         HAL_IWDG_Refresh(&hiwdg);
-#if 1
-        if(pumprestart + 4 < HAL_GetTick() && pump.control_mode == MANUAL)
-        {
-            if(pump.state_dir == FORWARD)
-            {
-                pump.field_state = (pump.field_state + 1) % 6;
-            }
-            else
-            {
-                pump.field_state = (pump.field_state + 6 - 1) % 6;
-            }
-            BLDC_SetPWM(&pump);
-            pumprestart += 4;
-        }
-#endif
-        if(uart_tick + 100 < HAL_GetTick())
-        {
-            BLDC_CalcSpeed(&pump);
-            txlen = sprintf(txbuff, "SPEED: %f [rot/min]\r\n", pump.speed);
-            HAL_UART_Transmit_IT(&huart1, (uint8_t*)txbuff, txlen);
-            uart_tick += 100;
-        }
-#if 0
-        if(pumppwm_tickcounter + 2 < HAL_GetTick() && pumppwm_tickcounter < 4000)
-        {
-            BLDC_SetPWM(&pump);
-            pump.field_state = (pump.field_state + 6 - 1) % 6;
-            pumppwm_tickcounter += 2;
-        }
-
-#elif 0
-        if(can_tickcounter + 1000 < HAL_GetTick())
-        {
-            SendMessage(&hfdcan1, COMMAND_PUMPDRIVER, &can_data);
-            can_data.pumpdriver.pump_current += 1;
-            can_data.pumpdriver.pump_speed += 2;
-            can_data.pumpdriver.pwm_heat += 3;
-            can_data.pumpdriver.pwm_pump += 4;
-            can_tickcounter += 1000;
-        }
-#endif
-#if 1
-        if (led_tickcounter + 500 < HAL_GetTick())
-        {
-            HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-            led_tickcounter += 500;
-        }
-#endif
+        HeartbeatLED_Update();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -245,14 +191,19 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-
-  /** Enables the Clock Security System
-  */
-  HAL_RCC_EnableCSS();
 }
 
 /* USER CODE BEGIN 4 */
+void HeartbeatLED_Update()
+{
+    static uint32_t tickcounter = 0, tickdelta = 500;
 
+    if (tickcounter + tickdelta < HAL_GetTick())
+    {
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        tickcounter += tickdelta;
+    }
+}
 /* USER CODE END 4 */
 
 /**

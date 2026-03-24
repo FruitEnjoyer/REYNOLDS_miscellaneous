@@ -15,7 +15,7 @@ extern "C"{
 #include "main.h"
 #include <stdint.h>
 
-#define BLDC_DEFAULTCTRL    (0.10f)
+#define BLDC_OPENLOOPCTRL    (0.065f)
 #define BLDC_SPEEDTHRESHOLD (10) // threshold between manual & interrupt control modes [revolutions per second]
 
 typedef struct bldc{
@@ -31,11 +31,22 @@ typedef struct bldc{
         STATE_3, STATE_4,
         STATE_5, STATE_6
     } field_state; // Stator field state
+    enum {
+        NO_INTERRUPT,
+        INTERRUPT_1,
+        INTERRUPT_2,
+        INTERRUPT_3,
+        INTERRUPT_4,
+        INTERRUPT_5,
+        INTERRUPT_6
+    } catched_interrupt;
     TIM_HandleTypeDef* pwmtim;
-    TIM_HandleTypeDef* ictim;
+    TIM_HandleTypeDef* ictim1;
+    TIM_HandleTypeDef* ictim2;
+    TIM_HandleTypeDef* statetim;
     volatile uint32_t last_ccr;
     float speed;
-    volatile uint32_t duty1, duty2;
+    volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     uint32_t ic_freq;
     enum {
@@ -43,8 +54,10 @@ typedef struct bldc{
         REVERSE
     } state_dir;
     enum {
-        INTERRUPT = 0,
-        MANUAL
+        IDLE,      // BLDC not starting
+        START,     // initiate start sequence
+        OPENLOOP,  // speed up until bemf detected
+        CLOSELOOP, // control based on bemf signals
     } control_mode;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
 
@@ -66,6 +79,11 @@ void BLDC_SetCtrl(bldc_t* bldc, float ctrl);
 
 void BLDC_CalcSpeed(bldc_t* bldc);
 
+void BLDC_Execute(bldc_t* bldc);
+void BLDC_IdleExecute(bldc_t* bldc);
+void BLDC_StartExecute(bldc_t* bldc);
+void BLDC_OpenLoopExecute(bldc_t* bldc);
+void BLDC_CloseLoopExecute(bldc_t* bldc);
 
 #ifdef __cplusplus
 }

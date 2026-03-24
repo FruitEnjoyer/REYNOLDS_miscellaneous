@@ -56,10 +56,10 @@ MessageData_t can_msg_data = {0};
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern CORDIC_HandleTypeDef hcordic;
 extern FDCAN_HandleTypeDef hfdcan1;
-extern FMAC_HandleTypeDef hfmac;
+extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim5;
+extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
@@ -76,7 +76,6 @@ void NMI_Handler(void)
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
-  HAL_RCC_NMI_IRQHandler();
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
    while (1)
   {
@@ -220,6 +219,20 @@ void FDCAN1_IT0_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM2 global interrupt.
+  */
+void TIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM2_IRQn 0 */
+
+  /* USER CODE END TIM2_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim2);
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+
+  /* USER CODE END TIM2_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
 void USART1_IRQHandler(void)
@@ -248,31 +261,17 @@ void TIM5_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles CORDIC interrupt.
+  * @brief This function handles TIM6 global interrupt, DAC1 and DAC3 channel underrun error interrupts.
   */
-void CORDIC_IRQHandler(void)
+void TIM6_DAC_IRQHandler(void)
 {
-  /* USER CODE BEGIN CORDIC_IRQn 0 */
+  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
 
-  /* USER CODE END CORDIC_IRQn 0 */
-  HAL_CORDIC_IRQHandler(&hcordic);
-  /* USER CODE BEGIN CORDIC_IRQn 1 */
+  /* USER CODE END TIM6_DAC_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
 
-  /* USER CODE END CORDIC_IRQn 1 */
-}
-
-/**
-  * @brief This function handles FMAC interrupt.
-  */
-void FMAC_IRQHandler(void)
-{
-  /* USER CODE BEGIN FMAC_IRQn 0 */
-
-  /* USER CODE END FMAC_IRQn 0 */
-  HAL_FMAC_IRQHandler(&hfmac);
-  /* USER CODE BEGIN FMAC_IRQn 1 */
-
-  /* USER CODE END FMAC_IRQn 1 */
+  /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

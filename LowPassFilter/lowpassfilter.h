@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#define FILTERSIZE 21
+#define FILTERSIZE 31
 #if FILTERSIZE < 1
 #error FILTERSIZE must be positive integer.
 #endif

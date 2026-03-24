@@ -14,7 +14,7 @@ extern "C"{
 
 #include "main.h"
 
-
+void DBG_BLDC_Detection(uint32_t ch);
 
 
 #ifdef __cplusplus
