@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ScratchFile FileVersion="3.0">
+  <FileVersion>3.0</FileVersion>
+  <Workspace>
+    <WorkspaceType>Single-project</WorkspaceType>
+    <WorkspacePath>C:\Users\user\work\projects\REYNOLDS_miscellaneous\Projects\AD7689_test\</WorkspacePath>
+    <underRoot>true</underRoot>
+    <TrustZone>0</TrustZone>
+    <HAL_Driver>C:\Users\user\STM32Cube\Repository\STM32CubeG4</HAL_Driver>
+    <CMSIS>Drivers/CMSIS</CMSIS>
+    <Toolchain>STM32CubeIDE</Toolchain>
+    <IocFile>AD7689_driver.ioc</IocFile>
+    <Project>
+              
+      <ProjectName>AD7689_driver</ProjectName>
+           
+      <ProjectNature>C</ProjectNature>
+       
+      <Secure/>
+            
+      <filestoremove>                           </filestoremove>
+      <sourceEntriesToRemove>
+            
+        <sourceEntry/>
+      </sourceEntriesToRemove>
+          
+      <configs>
+        <config>
+              
+          <name>AD7689_driver</name>
+          	 
+          <mainSourceRepo>Core</mainSourceRepo>
+             
+          <sourceStructure>Advanced</sourceStructure>
+           
+          <device>STM32G473CETx</device>
+          		     
+          <cpucore>ARM Cortex-M4</cpucore>
+                  
+          <fpu>SP</fpu>
+                
+          <memories>
+                       
+            <memory access="xrw" name="RAM" size="131072" start="0x20000000"/>
+                    
+            <memory access="rx" name="FLASH" size="524288" start="0x8000000"/>
+                
+          </memories>
+              
+          <startup>C:\Users\user\STM32Cube\Repository\STM32CubeG4\Drivers\CMSIS\Device\ST\STM32G4xx\Source\Templates\gcc\startup_stm32g473xx.s</startup>
+                
+          <LinkSettings>
+            	
+            <LinkAdditionalLibs>	</LinkAdditionalLibs>
+          </LinkSettings>
+              
+          <heapSize>0x200</heapSize>
+              
+          <stackSize>0x400</stackSize>
+                  
+          <cpuclock>160</cpuclock>
+                  
+          <board>custom</board>
+              
+          <debugprobe>swd</debugprobe>
+              
+          <optimization/>
+              
+          <Aincludes>        </Aincludes>
+              
+          <Adefines>        </Adefines>
+                
+          <Cdefines>
+                    
+            <define>USE_HAL_DRIVER</define>
+                    
+            <define>STM32G473xx</define>
+                    
+          </Cdefines>
+              
+          <Ldefines>        </Ldefines>
+                  
+          <Cincludes>
+            		        
+            <include>Core\Inc</include>
+                    
+            <include>Drivers\STM32G4xx_HAL_Driver\Inc</include>
+                    
+            <include>Drivers\STM32G4xx_HAL_Driver\Inc\Legacy</include>
+                    
+            <include>Drivers\CMSIS\Device\ST\STM32G4xx\Include</include>
+                    
+            <include>Drivers\CMSIS\Include</include>
+                    
+          </Cincludes>
+              
+          <definestoremove>
+                    
+            <Adefines>            </Adefines>
+                    
+            <Cdefines>
+                                  
+              <define>USE_FULL_LL_DRIVER</define>
+                                  
+              <define>USE_FULL_ASSERT=1U</define>
+                          
+            </Cdefines>
+                     
+            <Ldefines>            </Ldefines>
+                     
+          </definestoremove>
+              
+          <inctoremove>
+                    
+            <Aincludes>
+                          
+              <include/>
+                          
+            </Aincludes>
+                    
+            <Cincludes>            </Cincludes>
+                    
+          </inctoremove>
+                 
+        </config>
+                
+      </configs>
+       
+      <copyAsReference>false</copyAsReference>
+               
+      <sourceEntries>
+                    
+        <sourceEntry>
+                      
+          <name>Core</name>
+                      
+        </sourceEntry>
+                            
+        <sourceEntry>
+                      
+          <name>Drivers</name>
+                  
+        </sourceEntry>
+        	          
+      </sourceEntries>
+      <Groups>    </Groups>
+       
+    </Project>
+  </Workspace>
+</ScratchFile>
