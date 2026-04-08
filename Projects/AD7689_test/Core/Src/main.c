@@ -48,7 +48,7 @@
 
 /* USER CODE BEGIN PV */
 AD7689_t chip = {
-		.spi = &hspi1
+    .spi = &hspi1
 };
 
 HAL_StatusTypeDef status = HAL_OK;
@@ -102,7 +102,8 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(100);
-  //HAL_TIM_Base_Start_IT(&htim6);
+  AD7689_Init(&chip);
+  HAL_TIM_Base_Start_IT(&htim6);
 
   /* USER CODE END 2 */
 
@@ -110,14 +111,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  static uint32_t spi_counter = 0, spi_delta = 100;
-
-	  if(spi_counter + spi_delta < HAL_GetTick())
-	  {
-			status = HAL_SPI_TransmitReceive_IT(&hspi1, txbuff, rxbuff, 1);
-			results[0] = (uint16_t)(rxbuff[0] << 8) + rxbuff[1];
-			spi_counter += spi_delta;
-	  }
 	  HeartbeatLED_Update();
     /* USER CODE END WHILE */
 
@@ -186,14 +179,16 @@ void HeartbeatLED_Update()
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	static uint8_t counter = 0;
+	status = AD7689_ReadSingle(&chip, counter++);
+	counter %= 8;
 
 	__HAL_TIM_ENABLE_IT(&htim6, TIM_IT_UPDATE);
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-
-	HAL_UART_Transmit_IT(&huart1, uart_buff, sprintf(uart_buff, "%i\r\n", results[0]));
+	HAL_UART_Transmit_IT(&huart1, uart_buff, sprintf((char*)uart_buff, "%i\r\n", chip.results[0]));
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)

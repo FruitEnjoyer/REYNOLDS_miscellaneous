@@ -45,10 +45,5 @@
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/AD7689/AD7689.h</locationURI>
 		</link>
-		<link>
-			<name>Core/AD7689/AD7689_defines.h</name>
-			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/AD7689/AD7689_defines.h</locationURI>
-		</link>
 	</linkedResources>
 </projectDescription>
