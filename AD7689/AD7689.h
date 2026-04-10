@@ -40,20 +40,20 @@
 #define AD7689_CONFIG_CH7  ((uint16_t)(0b1111111111100100))
 
 typedef struct AD7689{
-	SPI_HandleTypeDef* spi;
-	GPIO_TypeDef* nss_port;
-	uint16_t nss_pin;
+    SPI_HandleTypeDef* spi;
+    GPIO_TypeDef* nss_port;
+    uint32_t nss_pin;
+    uint8_t circular_counter;
 
-	uint8_t txbuff[2], rxbuff[2];
+    uint8_t txbuff[2], rxbuff[2];
 
-	uint16_t results[8];
-	uint16_t temperature;
-	uint16_t current_config;
+    uint16_t results_int[8]; // [0-65535]
+    float results_float[8];  // [Volts]
 } AD7689_t;
 
 HAL_StatusTypeDef AD7689_Init(AD7689_t *chip);
 HAL_StatusTypeDef AD7689_ReadSingle(AD7689_t *chip, uint8_t channel);
-HAL_StatusTypeDef AD7689_ReadAll(AD7689_t *chip);
+HAL_StatusTypeDef AD7689_ReadCircular(AD7689_t *chip);
 
 
 #endif /* _AD7689_H_ */

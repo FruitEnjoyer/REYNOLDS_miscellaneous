@@ -48,7 +48,9 @@
 
 /* USER CODE BEGIN PV */
 AD7689_t chip = {
-    .spi = &hspi1
+    .spi = &hspi1,
+    .nss_port = AD7689_NSS_GPIO_Port,
+    .nss_pin = AD7689_NSS_Pin
 };
 
 HAL_StatusTypeDef status = HAL_OK;
@@ -101,7 +103,7 @@ int main(void)
   MX_TIM6_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(100);
+  HAL_Delay(10);
   AD7689_Init(&chip);
   HAL_TIM_Base_Start_IT(&htim6);
 
@@ -179,16 +181,15 @@ void HeartbeatLED_Update()
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	static uint8_t counter = 0;
-	status = AD7689_ReadSingle(&chip, counter++);
-	counter %= 8;
-
+#if 0
+    static uint8_t counter = 0;
+    status = AD7689_ReadSingle(&chip, counter);
+    counter += 1;
+    counter %= 8;
+#else
+    status = AD7689_ReadCircular(&chip);
+#endif
 	__HAL_TIM_ENABLE_IT(&htim6, TIM_IT_UPDATE);
-}
-
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	HAL_UART_Transmit_IT(&huart1, uart_buff, sprintf((char*)uart_buff, "%i\r\n", chip.results[0]));
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
