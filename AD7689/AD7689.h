@@ -28,6 +28,7 @@
  * ENABLE INTERRUPTS
  */
 
+
 #define AD7689_VREF        (4.096f)
 
 #define AD7689_CONFIG_CH0  ((uint16_t)(0b1111000111100100))
@@ -41,8 +42,15 @@
 
 typedef struct AD7689{
     SPI_HandleTypeDef* spi;
+    enum nss_mode{
+        NSS_HARDWARE = 0,
+        NSS_SOFTWARE
+    } nss_mode;
+
+    // Only for nss_mode = SOFTWARE
     GPIO_TypeDef* nss_port;
     uint32_t nss_pin;
+
     uint8_t circular_counter;
 
     uint8_t txbuff[2], rxbuff[2];

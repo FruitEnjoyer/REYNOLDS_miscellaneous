@@ -8,6 +8,9 @@
 
 #include "AD7689.h"
 
+__attribute__((always_inline)) static inline void NSS_SoftwareSet(AD7689_t* chip);
+__attribute__((always_inline)) static inline void NSS_SoftwareReset(AD7689_t* chip);
+
 HAL_StatusTypeDef AD7689_Init(AD7689_t *chip)
 {
     HAL_StatusTypeDef status = HAL_OK;
@@ -18,15 +21,15 @@ HAL_StatusTypeDef AD7689_Init(AD7689_t *chip)
     chip->circular_counter = 0;
 
     // Do a dummy call
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
     for(int i = 0; i < 50; ++i) __NOP();
 
     // Do a dummy call
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     status = HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
     for(int i = 0; i < 50; ++i) __NOP();
 
     // Clear garbage values
@@ -57,19 +60,19 @@ HAL_StatusTypeDef AD7689_ReadSingle(AD7689_t *chip, uint8_t channel)
     chip->txbuff[0] = (uint8_t)config;
     chip->txbuff[1] = (uint8_t)(config >> 8);
 
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
     for(int i = 0; i < 50; ++i) __NOP();
 
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
     for(int i = 0; i < 50; ++i) __NOP();
 
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     status = HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
 
     if(status == HAL_OK)
     {
@@ -100,9 +103,9 @@ HAL_StatusTypeDef AD7689_ReadCircular(AD7689_t *chip)
     chip->txbuff[0] = (uint8_t)config;
     chip->txbuff[1] = (uint8_t)(config >> 8);
 
-    chip->nss_port->BRR = chip->nss_pin;
+    NSS_SoftwareReset(chip);
     status = HAL_SPI_TransmitReceive(chip->spi, chip->txbuff, chip->rxbuff, 1, 1);
-    chip->nss_port->BSRR = chip->nss_pin;
+    NSS_SoftwareSet(chip);
 
     if(status == HAL_OK)
     {
@@ -112,4 +115,20 @@ HAL_StatusTypeDef AD7689_ReadCircular(AD7689_t *chip)
     chip->circular_counter = (chip->circular_counter + 1) % 8;
 
     return status;
+}
+
+__attribute__((always_inline)) static inline void NSS_SoftwareSet(AD7689_t* chip)
+{
+    if(chip->nss_mode == NSS_SOFTWARE)
+    {
+        chip->nss_port->BSRR = chip->nss_pin;
+    }
+}
+
+__attribute__((always_inline)) static inline void NSS_SoftwareReset(AD7689_t* chip)
+{
+    if(chip->nss_mode == NSS_SOFTWARE)
+    {
+        chip->nss_port->BRR = chip->nss_pin;
+    }
 }

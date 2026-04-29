@@ -48,6 +48,7 @@
 
 /* USER CODE BEGIN PV */
 AD7689_t chip = {
+    .nss_mode = NSS_SOFTWARE,
     .spi = &hspi1,
     .nss_port = AD7689_NSS_GPIO_Port,
     .nss_pin = AD7689_NSS_Pin
