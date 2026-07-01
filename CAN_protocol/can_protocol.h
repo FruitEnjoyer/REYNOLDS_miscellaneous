@@ -19,6 +19,16 @@ extern "C"{
   #error "Please define board!"
 #endif
 
+// Define STB port and pin to enable TJA1042
+//#define TJA1042_STB_PORT
+//#define TJA1042_STB_PIN
+
+#if !defined(TJA1042_STB_PORT) || !defined(TJA1042_STB_PIN)
+  #error "Please define STB port and pin"
+#else
+  #define 
+#endif
+
 
 /**
  * @brief CAN message identificator

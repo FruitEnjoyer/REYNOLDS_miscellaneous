@@ -9,14 +9,15 @@
 #include "stddef.h"
 #include "stdio.h"
 #include "math.h"
+#include "../BLDC/bldc.h"
 
 
-void LPF_init(lpfilter_t* filter, filter_type_t type)
+void LPF_init(lpfilter_t *filter, filter_type_t type, real startvalue)
 {
     filter->type = type;
     for(size_t i = 0; i < FILTERSIZE; ++i)
     {
-        filter->buffer[i] = 0.0;
+        filter->buffer[i] = startvalue;
     }
     filter->index = 0;
     switch(type)

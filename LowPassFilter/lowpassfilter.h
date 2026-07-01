@@ -20,23 +20,21 @@ extern "C" {
 typedef float real;
 // typedef double real;
 
-typedef enum filter_type{
-    RECTANGULAR,
-    BLACKMAN
+typedef enum filter_type
+{
+    RECTANGULAR, BLACKMAN
 } filter_type_t;
 
-typedef struct lpfilter{
+typedef struct lpfilter
+{
     filter_type_t type;
     real buffer[FILTERSIZE];
     real coefs[FILTERSIZE];
     int index;
 } lpfilter_t;
 
-
-void LPF_init(lpfilter_t* filter, filter_type_t type);
-real LPF_filter(lpfilter_t* filter, real a);
-
-
+void LPF_init(lpfilter_t *filter, filter_type_t type, real startvalue);
+real LPF_filter(lpfilter_t *filter, real a);
 
 #ifdef __cplusplus
 }
