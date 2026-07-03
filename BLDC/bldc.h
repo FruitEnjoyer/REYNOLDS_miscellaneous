@@ -35,7 +35,7 @@ extern "C"{
 #define BLDC_SPEEDUP_ACCELERATION  2700  // [rpm / sec]
 #define BLDC_SPEEDUP_MINSPEED      60    // [rpm]
 #define BLDC_SPEEDUP_MAXSPEED      2700  // [rpm]
-#define BLDC_STARTUP_MINDUTY       150
+#define BLDC_STARTUP_MINDUTY       160
 #define BLDC_CLOSELOOP_LOADDUTY    45
 #define BLDC_CLOSELOOP_WRONGCCR_MIN 350  // to detect fault
 #define BLDC_CLOSELOOP_WRONGCCR_MAX 500  // to detect fault
@@ -65,7 +65,7 @@ typedef struct bldc{
     } field_state; // Stator field state
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
-    volatile uint32_t last_ccr;
+    volatile uint64_t last_ccr;
     float speed, filtspeed, speedbyarr, targetspeed;
     volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
