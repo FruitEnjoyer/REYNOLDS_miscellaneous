@@ -67,7 +67,7 @@ typedef struct bldc{
     TIM_HandleTypeDef* ictim;
     volatile uint32_t last_ccr;
     float speed, filtspeed, speedbyarr, targetspeed;
-    volatile uint32_t duty;
+    volatile uint32_t duty, fakeduty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     uint32_t ic_freq;
     enum state_dir{
@@ -109,7 +109,7 @@ void BLDC_Configure(bldc_t* bldc);
 
 void BLDC_Start(bldc_t* bldc);
 
-uint16_t TargetByDutyPump(float duty);
+uint16_t DutyByTargetPump(float target);
 void BLDC_SetPWM(bldc_t* bldc);
 void BLDC_SetCtrl(bldc_t* bldc, float ctrl);
 

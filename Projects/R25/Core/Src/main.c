@@ -54,7 +54,7 @@
 bldc_t pump = { .pwmtim = &htim1, .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE), .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE), .pwm_CCER_ch3 =
         (TIM_CCER_CC3E | TIM_CCER_CC3NE), .field_state = STATE_1, .state_dir_t = FORWARD, .control_mode_t = IDLE, .duty = BLDC_STARTUP_MINDUTY, .align.cnt = 0,
         .startup.cnt = 0, .idle.disabletim_flag = 1, .idle.run_flag = 0, .startup.finalspeed =
-        BLDC_SPEEDUP_MAXSPEED, .closeloop.load_duty = BLDC_CLOSELOOP_LOADDUTY, .closeloop.kp = 0.001};
+        BLDC_SPEEDUP_MAXSPEED, .closeloop.load_duty = BLDC_CLOSELOOP_LOADDUTY, .closeloop.kp = 0.001, .filtspeed = 0};
 
 uint32_t target = BLDC_ARR_INITTARGET;
 uint32_t wrong_ccr = 0;
@@ -71,7 +71,6 @@ extern float speedup_inter[BLDC_SPEEDUP_INTER_NUM];
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static inline void BLDC_Update();
-static inline float BLDC_CalcDuty(float speed);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -302,18 +301,13 @@ static inline void BLDC_Update()
                 pump.startup.speed = (BLDC_SPEEDUP_MAXSPEED - BLDC_SPEEDUP_MINSPEED) * BLDC_Speedup(pump.startup.t / pump.startup.tmax) + BLDC_SPEEDUP_MINSPEED;
                 pump.startup.t += bldc_delta / 1000.f;
 
-                if(BLDC_CalcDuty(pump.startup.speed) > BLDC_STARTUP_MINDUTY)
-                {
-                    pump.duty = 1.1 * BLDC_CalcDuty(pump.startup.speed);
-                } else
-                {
-                    pump.duty = BLDC_STARTUP_MINDUTY;
-                }
+                pump.duty = BLDC_STARTUP_MINDUTY;
 
                 SPEEDUP_SET_PSC(pump.startup.speed);
                 pump.startup.cnt = 0;
             } else if(pump.startup.cnt > 100)
             {
+                arr = 0;
                 target = BLDC_ARR_INITTARGET;
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
@@ -327,12 +321,12 @@ static inline void BLDC_Update()
                 pump.control_mode_t = CLOSELOOP;
                 pump.startup.cnt = 0;
                 pump.closeloop.needrestart_flag = 0;
+                pump.filtspeed = 0;
                 pump.speed = 0;
                 pump.targetspeed = 3300;
                 pump.closeloop.interr = 0;
                 pump.closeloop.out = 0;
                 closeloopcnt = 0;
-                arr = 0;
             }
             pump.startup.cnt += 1;
             break;
@@ -346,20 +340,20 @@ static inline void BLDC_Update()
 
             pump.speed = 60. * 1 / ((float)pump.last_ccr / TIM_FREQ * 6. * BLDC_MAGPAIRS);
             pump.speedbyarr = 60. * TIM_FREQ / (pump.startup.last_psc + 1) / (htim6.Instance->ARR + 1) / 6. / BLDC_MAGPAIRS;
-            pump.filtspeed = pump.speed;
-            arr = (uint32_t)(TIM_FREQ / 6. / BLDC_MAGPAIRS / (pump.startup.last_psc + 1) / pump.filtspeed * 60. - 1);
+            pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
+            arr = (uint32_t)(TIM_FREQ / 6. / BLDC_MAGPAIRS / (pump.startup.last_psc + 1) / pump.speed * 60. - 1);
             if(closeloopcnt >= 100)
             {
-                pump.closeloop.err = pump.targetspeed - pump.speedbyarr;
+                pump.closeloop.err = pump.targetspeed - pump.filtspeed;
                 pump.closeloop.interr += pump.closeloop.err * 100 * bldc_delta / 1000.;
                 if(pump.closeloop.interr > 100) pump.closeloop.interr = 100;
                 if(pump.closeloop.interr < -100) pump.closeloop.interr = -100;
                 pump.closeloop.out = pump.closeloop.kp * pump.closeloop.err + pump.closeloop.ki * pump.closeloop.interr;
                 pump.closeloop.fduty += pump.closeloop.out;
-                target = TargetByDutyPump(pump.closeloop.fduty);
+                //target = TargetByDutyPump(pump.closeloop.fduty);
                 closeloopcnt = 0;
             }
-            closeloopcnt += 1;
+            closeloopcnt += 0;
             break;
 
         default:
@@ -371,6 +365,8 @@ static inline void BLDC_Update()
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+    //__HAL_TIM_SET_COUNTER(&htim2, 0);
+
     uint32_t prev_ccr = pump.last_ccr;
     if(htim == &htim2)
     {
@@ -378,28 +374,28 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_3)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                //pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
                 pump.field_state = STATE_4;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
             if(pump.field_state == STATE_6)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                //pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
                 pump.field_state = STATE_1;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
         {
             if(pump.field_state == STATE_1)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                //pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_3);
                 pump.field_state = STATE_2;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
         {
             if(pump.field_state == STATE_4)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                //pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_4);
                 pump.field_state = STATE_5;
             }
         }
@@ -409,37 +405,21 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_2)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
+                pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * (__HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2)) / 3;
                 pump.field_state = STATE_3;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
             if(pump.field_state == STATE_5)
             {
-                pump.last_ccr = __HAL_TIM_GET_COUNTER(htim);
+                //pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
                 pump.field_state = STATE_6;
             }
         }
     }
-    if(pump.last_ccr <= 5000)
-    {
-
-        pump.last_ccr = prev_ccr;
-    }
-    if(__HAL_TIM_GET_COUNTER(htim) <= 5100 && __HAL_TIM_GET_COUNTER(htim) > 4500)
-    {
-        //pump.closeloop.needrestart_flag = 1;
-        wrong_ccr = __HAL_TIM_GET_COUNTER(htim);
-    }
-    __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t )(htim6.Instance->ARR * 0.90 + arr * 0.02 + target * 0.08));
+    __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + arr * 0.02 + target * 0.08));
     __HAL_TIM_SET_COUNTER(&htim6, 0);
-    __HAL_TIM_SET_COUNTER(&htim2, 0);
-    __HAL_TIM_SET_COUNTER(&htim5, 0);
-}
-
-static inline float BLDC_CalcDuty(float speed)
-{
-    return TIM_PWM_ARR * speed / BLDC_KV / 12.f;
 }
 /* USER CODE END 4 */
 
