@@ -30,40 +30,44 @@ float speedup_inter[BLDC_SPEEDUP_INTER_NUM] = {
         0.29527121929156586, 0.33742360216461964, 0.38232892018305953, 0.42933794056115027, 0.477657165722823, 0.5263981951626329, 0.5746412513676964,
         0.621503557088486, 0.6662020005138252, 0.7081009948172341, 0.7467400711819927, 0.7818402365299438, 0.8132920616370185, 0.8411308951190849 };
 
-static uint16_t pump_targets[17] = {
-        3700, 3050, 2750, 2500, 2300,
-        2100, 1940, 1825, 1725, 1650,
-        1450, 1325, 1300, 1250, 1225,
-        1150, 1025
+static int16_t pump_targets[26] = {
+        3900, 3000, 2400, 1950, 1650,
+        1475, 1400, 1200, 950, 900,
+        840, 630, 590, 490, 400,
+        290, 200, 140, 100, 10,
+        -50, -70, -100, -190, -250,
+        -300
 };
-static uint16_t pump_duties[17] = {
-        150, 180, 200, 220, 240,
-        260, 280, 300, 320, 340,
-        360, 380, 400, 420, 440,
-        460, 480
+static uint16_t pump_duties[26] = {
+        150, 190, 230, 270, 310,
+        350, 390, 400, 430, 450,
+        470, 490, 500, 520, 540,
+        560, 580, 600, 620, 640,
+        660, 680, 700, 740, 780,
+        800
 };
 
 uint16_t DutyByTargetPump(float target)
 {
-    if(target <= pump_targets[0])
+    if(target >= pump_targets[0])
     {
         return pump_duties[0];
     }
-    else if(target >= pump_targets[16])
+    else if(target <= pump_targets[25])
     {
-        return pump_duties[16];
+        return pump_duties[25];
     }
     else
     {
         size_t i = 0;
-        while(target > pump_targets[i])
+        while(target < pump_targets[i])
         {
             i += 1;
         }
 
         // w = a * t + b
-        float a = (pump_duties[i] - pump_duties[i - 1]) / (pump_targets[i] - pump_targets[i - 1]);
-        float b = (pump_duties[i - 1] * pump_targets[i] - pump_duties[i] * pump_targets[i - 1]) / (pump_targets[i] - pump_targets[i - 1]);
+        float a = (pump_duties[i] - pump_duties[i - 1]) / (float)(pump_targets[i] - pump_targets[i - 1]);
+        float b = (pump_duties[i - 1] * pump_targets[i] - pump_duties[i] * pump_targets[i - 1]) / (float)(pump_targets[i] - pump_targets[i - 1]);
 
         return (uint16_t)(a * target + b);
     }

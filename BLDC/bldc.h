@@ -45,7 +45,7 @@ extern "C"{
 #define BLDC_DIRECTION 5
 #define BLDC_SPEEDUP_INTER_NUM 42
 #define TIM_FREQ 160000000
-#define TIM_BASE_INIT_ARR 6000
+#define TIM_BASE_INIT_ARR 5999
 #define TIM_PWM_ARR 1000
 #define BLDC_DEFAULTCTRL    (0.1105f)
 #define BLDC_SPEEDTHRESHOLD (10) // threshold between manual & interrupt control modes [revolutions per second]
@@ -83,7 +83,7 @@ typedef struct bldc{
     } control_mode_t;
     uint32_t manual_ticksdelta, ctrl_ticksdelta;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
-
+    uint8_t usearr;
 
     struct{
         uint8_t disabletim_flag, run_flag;
