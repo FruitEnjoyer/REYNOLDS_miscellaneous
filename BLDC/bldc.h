@@ -100,7 +100,7 @@ typedef struct bldc{
     struct{
         uint32_t arr, load_duty;
         float target, fduty;
-        float kp, ki, err, interr, out;
+        float kp, ki, kd, err, preverr, prev2err, interr, differr, out;
         uint8_t needrestart_flag;
     } closeloop;
 } bldc_t;

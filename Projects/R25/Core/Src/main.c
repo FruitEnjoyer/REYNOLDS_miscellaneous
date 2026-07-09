@@ -54,7 +54,7 @@
 bldc_t pump = { .pwmtim = &htim1, .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE), .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE), .pwm_CCER_ch3 =
         (TIM_CCER_CC3E | TIM_CCER_CC3NE), .field_state = STATE_1, .state_dir_t = FORWARD, .control_mode_t = IDLE, .duty = BLDC_STARTUP_MINDUTY, .align.cnt = 0,
         .startup.cnt = 0, .idle.disabletim_flag = 1, .idle.run_flag = 0, .startup.finalspeed =
-        BLDC_SPEEDUP_MAXSPEED, .closeloop.kp = -0.03, .filtspeed = 3000, .targetspeed = 8000};
+        BLDC_SPEEDUP_MAXSPEED, .closeloop.kp = -0.03, .closeloop.ki = -0.01, .filtspeed = 3000, .targetspeed = 8000};
 
 int32_t target = BLDC_ARR_INITTARGET;
 uint32_t wrong_ccr = 0;
@@ -259,6 +259,9 @@ static inline void BLDC_Update()
                 pump.closeloop.needrestart_flag = 0;
                 pump.speed = 0;
                 pump.closeloop.interr = 0;
+                pump.closeloop.preverr = 0;
+                pump.closeloop.prev2err = 0;
+                pump.closeloop.err = 0;
                 pump.closeloop.out = 0;
                 closeloopcnt = 0;
                 pump.usearr = 0;
@@ -327,7 +330,12 @@ static inline void BLDC_Update()
             if(!pump.idle.run_flag || pump.closeloop.needrestart_flag)
             {
                 pump.closeloop.needrestart_flag = 0;
-                pump.control_mode_t = IDLE;
+                pump.targetspeed = 3000;
+                if(fabsf(pump.speed - pump.targetspeed) < 300)
+                {
+                    pump.control_mode_t = IDLE;
+                }
+
             }
 
             pump.speed = 60. * 1 / ((float)pump.last_ccr / TIM_FREQ * 6. * BLDC_MAGPAIRS);
@@ -336,11 +344,16 @@ static inline void BLDC_Update()
             if(closeloopcnt >= 100)
             {
                 pump.usearr = 1;
+                pump.closeloop.prev2err = pump.closeloop.preverr;
+                pump.closeloop.preverr = pump.closeloop.err;
                 pump.closeloop.err = pump.targetspeed - pump.filtspeed;
                 pump.closeloop.interr += pump.closeloop.err * 100 * bldc_delta / 1000.;
+                pump.closeloop.differr = pump.closeloop.err - 2 * pump.closeloop.preverr + pump.closeloop.prev2err;
                 if(pump.closeloop.interr > 100) pump.closeloop.interr = 100;
                 if(pump.closeloop.interr < -100) pump.closeloop.interr = -100;
-                pump.closeloop.out = pump.closeloop.kp * pump.closeloop.err + pump.closeloop.ki * pump.closeloop.interr;
+                pump.closeloop.out = pump.closeloop.kp * pump.closeloop.err +
+                                     pump.closeloop.ki * pump.closeloop.interr +
+                                     pump.closeloop.kd * pump.closeloop.differr;
                 pump.duty = DutyByTargetPump(target + pump.closeloop.out);
                 target += pump.closeloop.out;
                 closeloopcnt = 0;
