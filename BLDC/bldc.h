@@ -45,7 +45,7 @@ extern "C"{
 #define BLDC_DIRECTION 5
 #define BLDC_SPEEDUP_INTER_NUM 42
 #define TIM_FREQ 160000000
-#define TIM_BASE_INIT_ARR 6000
+#define TIM_BASE_INIT_ARR 5999
 #define TIM_PWM_ARR 1000
 #define BLDC_DEFAULTCTRL    (0.1105f)
 #define BLDC_SPEEDTHRESHOLD (10) // threshold between manual & interrupt control modes [revolutions per second]
@@ -65,7 +65,7 @@ typedef struct bldc{
     } field_state; // Stator field state
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
-    volatile uint64_t last_ccr;
+    volatile uint32_t last_ccr, fakelast_ccr;
     float speed, filtspeed, speedbyarr, targetspeed;
     volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
@@ -83,7 +83,7 @@ typedef struct bldc{
     } control_mode_t;
     uint32_t manual_ticksdelta, ctrl_ticksdelta;
     //float ctrl; // Magnitude of PWM-ON state (from -1 to 1)
-
+    uint8_t usearr;
 
     struct{
         uint8_t disabletim_flag, run_flag;
@@ -95,12 +95,11 @@ typedef struct bldc{
         float speed, finalspeed, tmax, t;
         uint16_t cnt;
         uint32_t last_psc;
-        uint16_t minduty;
     } startup;
     struct{
         uint32_t arr, load_duty;
         float target, fduty;
-        float kp, ki, err, interr, out;
+        float kp, ki, kd, err, preverr, prev2err, interr, differr, out;
         uint8_t needrestart_flag;
     } closeloop;
 } bldc_t;
@@ -109,7 +108,7 @@ void BLDC_Configure(bldc_t* bldc);
 
 void BLDC_Start(bldc_t* bldc);
 
-uint16_t TargetByDutyPump(float duty);
+uint16_t DutyByTargetPump(float target);
 void BLDC_SetPWM(bldc_t* bldc);
 void BLDC_SetCtrl(bldc_t* bldc, float ctrl);
 
