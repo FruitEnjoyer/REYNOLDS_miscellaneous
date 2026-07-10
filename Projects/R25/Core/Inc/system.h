@@ -21,10 +21,8 @@ typedef struct
     int32_t mcu_temp;
 } systemvars_t;
 
-void System_Init();
-
 void HeartbeatLED_Update();
-void ADC_Update();
+void AD7689_Update();
 
 #ifdef __cplusplus
 }
