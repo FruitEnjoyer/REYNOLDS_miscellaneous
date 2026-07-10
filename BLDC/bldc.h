@@ -35,7 +35,7 @@ extern "C"{
 #define BLDC_SPEEDUP_ACCELERATION  2700  // [rpm / sec]
 #define BLDC_SPEEDUP_MINSPEED      60    // [rpm]
 #define BLDC_SPEEDUP_MAXSPEED      2700  // [rpm]
-#define BLDC_STARTUP_MINDUTY       150
+#define BLDC_STARTUP_MINDUTY       160
 #define BLDC_CLOSELOOP_LOADDUTY    45
 #define BLDC_CLOSELOOP_WRONGCCR_MIN 350  // to detect fault
 #define BLDC_CLOSELOOP_WRONGCCR_MAX 500  // to detect fault

@@ -62,9 +62,6 @@ uint32_t x = 0;
 
 lpfilter_t filt1;
 uint16_t closeloopcnt = 0;
-
-extern AD7689_t extADC;
-extern float speedup_inter[BLDC_SPEEDUP_INTER_NUM];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +74,7 @@ static inline void BLDC_Update();
 /* USER CODE BEGIN 0 */
 uint32_t arr = 0;
 uint32_t temp = 0;
+float newarr = 0;
 /* USER CODE END 0 */
 
 /**
@@ -123,9 +121,7 @@ int main(void)
   MX_TIM17_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-    HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-    AD7689_Init(&extADC);
+    System_Init();
     pump.idle.run_flag = 0;
   /* USER CODE END 2 */
 
@@ -135,7 +131,7 @@ int main(void)
     {
         BLDC_Update();
         HeartbeatLED_Update();
-        AD7689_Update();
+        ADC_Update();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -201,10 +197,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         {
         }
         BLDC_SetPWM(&pump);
-        HAL_TIM_Base_Start_IT(htim);
-    } else if(htim == &htim2 || htim == &htim5)
-    {
-        __HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
     }
 }
 
@@ -342,6 +334,11 @@ static inline void BLDC_Update()
                 }
 #endif
             }
+            pump.speed = 60. * TIM_FREQ / (float)pump.last_ccr / 6. / BLDC_MAGPAIRS;
+            pump.filtspeed = LPF_filter(&filt1, pump.speed);
+
+            pump.speedbyarr = 60. * TIM_FREQ / (htim6.Instance->PSC + 1) / (htim6.Instance->ARR + 1) / 6. / BLDC_MAGPAIRS;
+            arr = (uint32_t)(TIM_FREQ / 6. / BLDC_MAGPAIRS / (pump.startup.last_psc + 1) / pump.speed * 60. - 1);
 
             pump.speed = 60. * 1 / ((float)pump.last_ccr / TIM_FREQ * 6. * BLDC_MAGPAIRS);
             pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
@@ -363,7 +360,8 @@ static inline void BLDC_Update()
                 target += pump.closeloop.out;
                 closeloopcnt = 0;
             }
-            closeloopcnt += 1;
+            closeloopcnt += 0;
+
             break;
 
         default:
@@ -385,24 +383,28 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.field_state = STATE_4;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
             if(pump.field_state == STATE_6)
             {
                 pump.field_state = STATE_1;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
         {
             if(pump.field_state == STATE_1)
             {
                 pump.field_state = STATE_2;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_3);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
         {
             if(pump.field_state == STATE_4)
             {
                 pump.field_state = STATE_5;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_4);
             }
         }
     } else if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
@@ -412,6 +414,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             if(pump.field_state == STATE_2)
             {
                 pump.field_state = STATE_3;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
@@ -428,6 +431,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                     pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * new_ccr / 6;
                 }
                 pump.field_state = STATE_6;
+                pump.last_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
             }
         }
     }
