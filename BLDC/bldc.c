@@ -30,21 +30,21 @@ float speedup_inter[BLDC_SPEEDUP_INTER_NUM] = {
         0.29527121929156586, 0.33742360216461964, 0.38232892018305953, 0.42933794056115027, 0.477657165722823, 0.5263981951626329, 0.5746412513676964,
         0.621503557088486, 0.6662020005138252, 0.7081009948172341, 0.7467400711819927, 0.7818402365299438, 0.8132920616370185, 0.8411308951190849 };
 
-static int16_t pump_targets[26] = {
+static int16_t pump_targets[28] = {
         3900, 3000, 2400, 1950, 1650,
         1475, 1400, 1200, 950, 900,
-        840, 630, 590, 490, 400,
-        290, 200, 140, 100, 10,
-        -50, -70, -100, -190, -250,
-        -300
+        840, 630, 590, 490, 410,
+        300, 210, 150, 110, 20,
+        -40, -60, -90, -180, -240,
+        -290, -390, -420
 };
-static uint16_t pump_duties[26] = {
+static uint16_t pump_duties[28] = {
         150, 190, 230, 270, 310,
         350, 390, 400, 430, 450,
         470, 490, 500, 520, 540,
         560, 580, 600, 620, 640,
         660, 680, 700, 740, 780,
-        800
+        820, 840, 880
 };
 
 uint16_t DutyByTargetPump(float target)
@@ -53,9 +53,9 @@ uint16_t DutyByTargetPump(float target)
     {
         return pump_duties[0];
     }
-    else if(target <= pump_targets[25])
+    else if(target <= pump_targets[27])
     {
-        return pump_duties[25];
+        return pump_duties[27];
     }
     else
     {
@@ -133,7 +133,7 @@ void BLDC_SetPWM(bldc_t *bldc)
         break;
     }
 }
-
+#if 1
 void BLDC_SetCtrl(bldc_t *bldc, float ctrl)
 {
     uint16_t duty = (uint16_t)(ctrl * (bldc->pwmtim->Instance->ARR + 1));
@@ -146,6 +146,7 @@ void BLDC_SetCtrl(bldc_t *bldc, float ctrl)
         bldc->duty = 0;
     }
 }
+#endif
 
 void BLDC_CalcSpeed(bldc_t *bldc)
 {

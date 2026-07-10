@@ -65,9 +65,9 @@ typedef struct bldc{
     } field_state; // Stator field state
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
-    volatile uint32_t last_ccr;
+    volatile uint32_t last_ccr, fakelast_ccr;
     float speed, filtspeed, speedbyarr, targetspeed;
-    volatile uint32_t duty, fakeduty;
+    volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     uint32_t ic_freq;
     enum state_dir{
@@ -95,7 +95,6 @@ typedef struct bldc{
         float speed, finalspeed, tmax, t;
         uint16_t cnt;
         uint32_t last_psc;
-        uint16_t minduty;
     } startup;
     struct{
         uint32_t arr, load_duty;

@@ -54,7 +54,7 @@
 bldc_t pump = { .pwmtim = &htim1, .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE), .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE), .pwm_CCER_ch3 =
         (TIM_CCER_CC3E | TIM_CCER_CC3NE), .field_state = STATE_1, .state_dir_t = FORWARD, .control_mode_t = IDLE, .duty = BLDC_STARTUP_MINDUTY, .align.cnt = 0,
         .startup.cnt = 0, .idle.disabletim_flag = 1, .idle.run_flag = 0, .startup.finalspeed =
-        BLDC_SPEEDUP_MAXSPEED, .closeloop.kp = -0.03, .closeloop.ki = -0.01, .filtspeed = 3000, .targetspeed = 8000};
+        BLDC_SPEEDUP_MAXSPEED, .closeloop.kp = -0.025, .closeloop.ki = -0.01, .closeloop.kd = -0.001, .filtspeed = 3000, .targetspeed = 8000};
 
 int32_t target = BLDC_ARR_INITTARGET;
 uint32_t wrong_ccr = 0;
@@ -258,6 +258,7 @@ static inline void BLDC_Update()
                 pump.targetspeed = 8000;
                 pump.closeloop.needrestart_flag = 0;
                 pump.speed = 0;
+                pump.startup.cnt = 0;
                 pump.closeloop.interr = 0;
                 pump.closeloop.preverr = 0;
                 pump.closeloop.prev2err = 0;
@@ -330,12 +331,16 @@ static inline void BLDC_Update()
             if(!pump.idle.run_flag || pump.closeloop.needrestart_flag)
             {
                 pump.closeloop.needrestart_flag = 0;
+                pump.field_state = STATE_OFF;
+                BLDC_SetPWM(&pump);
+                pump.control_mode_t = IDLE;
+#if 0
                 pump.targetspeed = 3000;
                 if(fabsf(pump.speed - pump.targetspeed) < 300)
                 {
                     pump.control_mode_t = IDLE;
                 }
-
+#endif
             }
 
             pump.speed = 60. * 1 / ((float)pump.last_ccr / TIM_FREQ * 6. * BLDC_MAGPAIRS);
@@ -348,7 +353,7 @@ static inline void BLDC_Update()
                 pump.closeloop.preverr = pump.closeloop.err;
                 pump.closeloop.err = pump.targetspeed - pump.filtspeed;
                 pump.closeloop.interr += pump.closeloop.err * 100 * bldc_delta / 1000.;
-                pump.closeloop.differr = pump.closeloop.err - 2 * pump.closeloop.preverr + pump.closeloop.prev2err;
+                pump.closeloop.differr = (pump.closeloop.err - 2 * pump.closeloop.preverr + pump.closeloop.prev2err) / (100 * bldc_delta / 1000.);
                 if(pump.closeloop.interr > 100) pump.closeloop.interr = 100;
                 if(pump.closeloop.interr < -100) pump.closeloop.interr = -100;
                 pump.closeloop.out = pump.closeloop.kp * pump.closeloop.err +
@@ -370,8 +375,6 @@ static inline void BLDC_Update()
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-    //__HAL_TIM_SET_COUNTER(&htim2, 0);
-    static uint64_t iccounter = 0;
     int32_t new_ccr;
 
     if(htim == &htim2 && pump.control_mode_t == CLOSELOOP)
@@ -380,6 +383,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_3)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.field_state = STATE_4;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
@@ -407,21 +411,22 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_2)
             {
-                __HAL_TIM_SET_COUNTER(&htim5, 0);
-                new_ccr = __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(htim, TIM_CHANNEL_2);
-                if(new_ccr > 0)
-                {
-                    pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * new_ccr / 3;
-                }
-                else{
-                    pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * new_ccr / 3;
-                }
                 pump.field_state = STATE_3;
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
             if(pump.field_state == STATE_5)
             {
+                __HAL_TIM_SET_COUNTER(&htim2, 0);
+                new_ccr = ((__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_2)) +
+                        (__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_3)));
+                if(new_ccr > 0)
+                {
+                    pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * new_ccr / 6;
+                }
+                else{
+                    pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * new_ccr / 6;
+                }
                 pump.field_state = STATE_6;
             }
         }
