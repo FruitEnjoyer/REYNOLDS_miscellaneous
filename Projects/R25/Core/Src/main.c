@@ -27,8 +27,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "../../../../BLDC/bldc.h"
-#include "../../../../LowPassFilter/lowpassfilter.h"
+#include "pump.h"
+#include "starter.h"
 #include <stdlib.h>
 #include "system.h"
 /* USER CODE END Includes */
@@ -40,7 +40,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SPEEDUP_SET_PSC(speed) __HAL_TIM_SET_PRESCALER(&htim6, (uint32_t)(TIM_FREQ / 6. / (TIM_BASE_INIT_ARR + 1) / BLDC_MAGPAIRS / speed * 60 - 1)); // speed = [rpm]
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,32 +51,28 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-bldc_t pump = { .pwmtim = &htim1, .pwm_CCER_ch1 = (TIM_CCER_CC1E | TIM_CCER_CC1NE), .pwm_CCER_ch2 = (TIM_CCER_CC2E | TIM_CCER_CC2NE), .pwm_CCER_ch3 =
-        (TIM_CCER_CC3E | TIM_CCER_CC3NE), .field_state = STATE_1, .state_dir_t = FORWARD, .control_mode_t = IDLE, .duty = BLDC_STARTUP_MINDUTY, .align.cnt = 0,
-        .startup.cnt = 0, .idle.disabletim_flag = 1, .idle.run_flag = 0, .startup.finalspeed =
-        BLDC_SPEEDUP_MAXSPEED, .closeloop.kp = -0.025, .closeloop.ki = -0.01, .closeloop.kd = -0.001, .filtspeed = 3000, .targetspeed = 8000};
+extern bldc_t pump;
+extern bldc_t starter;
 
-int32_t target = BLDC_ARR_INITTARGET;
+//int32_t target = PUMP_ARR_INITTARGET;
 uint32_t wrong_ccr = 0;
 uint32_t x = 0;
 
-lpfilter_t filt1;
-uint16_t closeloopcnt = 0;
+//uint16_t closeloopcnt = 0;
 
 extern AD7689_t extADC;
-extern float speedup_inter[BLDC_SPEEDUP_INTER_NUM];
+extern float speedup_inter[PUMP_SPEEDUP_INTER_NUM];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static inline void BLDC_Update();
+//static inline void BLDC_Update();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint32_t arr = 0;
-uint32_t temp = 0;
+//uint32_t temp = 0;
 /* USER CODE END 0 */
 
 /**
@@ -122,18 +118,21 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM17_Init();
   MX_ADC1_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
     HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
     HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
     AD7689_Init(&extADC);
     pump.idle.run_flag = 0;
+    starter.idle.run_flag = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
-        BLDC_Update();
+        Starter_Update();
+        Pump_Update();
         HeartbeatLED_Update();
         AD7689_Update();
     /* USER CODE END WHILE */
@@ -197,185 +196,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if(pump.control_mode_t != CLOSELOOP)
         {
             pump.field_state = (pump.field_state + 1) % 6;
-        } else
-        {
         }
         BLDC_SetPWM(&pump);
         HAL_TIM_Base_Start_IT(htim);
-    } else if(htim == &htim2 || htim == &htim5)
+    }
+    else if(htim == &htim7)
+    {
+        if(starter.control_mode_t != CLOSELOOP)
+        {
+            starter.field_state = (starter.field_state + 1) % 6;
+        }
+        BLDC_SetPWM(&starter);
+        HAL_TIM_Base_Start_IT(htim);
+    }
+    else if(htim == &htim2 || htim == &htim5)
     {
         __HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
     }
 }
 
-static inline void BLDC_Update()
-{
-    static uint32_t bldc_ticks = 0;
-    const static uint32_t bldc_delta = 1;
-
-    if(bldc_ticks + bldc_delta < HAL_GetTick())
-    {
-        bldc_ticks += bldc_delta;
-
-        switch(pump.control_mode_t)
-        {
-        case IDLE:
-            if(pump.idle.disabletim_flag)
-            {
-                HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
-                HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_2);
-                HAL_TIM_IC_Stop_IT(&htim5, TIM_CHANNEL_1);
-                HAL_TIM_IC_Stop_IT(&htim5, TIM_CHANNEL_2);
-                HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_3);
-                HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_4);
-
-                HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-                HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
-                HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
-                HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
-                HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
-                HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
-                HAL_TIM_Base_Stop_IT(&htim6);
-                pump.idle.disabletim_flag = 0;
-            }
-            if(pump.idle.run_flag)
-            {
-                HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-                HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-                HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-                HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-                HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-                HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
-                htim6.Instance->PSC = 5999;
-                htim6.Instance->ARR = 5999;
-                htim6.Instance->CNT = 0;
-                pump.control_mode_t = ALIGN;
-                pump.idle.disabletim_flag = 1;
-                pump.field_state = STATE_1;
-                pump.last_ccr = 100000;
-                pump.duty = BLDC_STARTUP_MINDUTY;
-                pump.filtspeed = 3000;
-                pump.targetspeed = 8000;
-                pump.closeloop.needrestart_flag = 0;
-                pump.speed = 0;
-                pump.startup.cnt = 0;
-                pump.closeloop.interr = 0;
-                pump.closeloop.preverr = 0;
-                pump.closeloop.prev2err = 0;
-                pump.closeloop.err = 0;
-                pump.closeloop.out = 0;
-                closeloopcnt = 0;
-                pump.usearr = 0;
-                arr = BLDC_ARR_INITTARGET;
-                target = BLDC_ARR_INITTARGET;
-            }
-            break;
-        case ALIGN:
-            if(!pump.idle.run_flag)
-            {
-                pump.control_mode_t = IDLE;
-            }
-            BLDC_SetPWM(&pump);
-            pump.align.cnt++;
-            if(pump.align.cnt > BLDC_ALIGN_DELAY / (float)bldc_delta)
-            {
-                pump.align.cnt = 0;
-                pump.startup.speed = BLDC_SPEEDUP_MINSPEED;
-                pump.startup.tmax = (BLDC_SPEEDUP_MAXSPEED - BLDC_SPEEDUP_MINSPEED) / (float)BLDC_SPEEDUP_ACCELERATION;
-                pump.startup.t = 0;
-                SPEEDUP_SET_PSC(pump.startup.speed);
-                pump.control_mode_t = PRESTARTUP;
-                HAL_TIM_Base_Start_IT(&htim6);
-            }
-            break;
-        case PRESTARTUP:
-            if(!pump.idle.run_flag)
-            {
-                pump.control_mode_t = IDLE;
-            }
-            pump.align.cnt++;
-            if(pump.align.cnt > BLDC_PRESTARTUP_DELAY / (float)bldc_delta)
-            {
-                pump.align.cnt = 0;
-                pump.control_mode_t = STARTUP;
-            }
-            break;
-
-        case STARTUP:
-            if(!pump.idle.run_flag)
-            {
-                pump.control_mode_t = IDLE;
-            }
-
-            if(pump.startup.t < pump.startup.tmax)
-            {
-                pump.startup.speed = (BLDC_SPEEDUP_MAXSPEED - BLDC_SPEEDUP_MINSPEED) * BLDC_Speedup(pump.startup.t / pump.startup.tmax) + BLDC_SPEEDUP_MINSPEED;
-                pump.startup.t += bldc_delta / 1000.f;
-                SPEEDUP_SET_PSC(pump.startup.speed);
-                pump.startup.cnt = 0;
-            } else if(pump.startup.cnt > 500)
-            {
-                pump.control_mode_t = CLOSELOOP;
-                pump.startup.cnt = 0;
-                HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-                HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
-                HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_1);
-                HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_2);
-                HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
-                HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);
-            }
-            pump.startup.cnt += 1;
-            break;
-
-        case CLOSELOOP:
-            if(!pump.idle.run_flag || pump.closeloop.needrestart_flag)
-            {
-                pump.closeloop.needrestart_flag = 0;
-                pump.field_state = STATE_OFF;
-                BLDC_SetPWM(&pump);
-                pump.control_mode_t = IDLE;
-#if 0
-                pump.targetspeed = 3000;
-                if(fabsf(pump.speed - pump.targetspeed) < 300)
-                {
-                    pump.control_mode_t = IDLE;
-                }
-#endif
-            }
-
-            pump.speed = 60. * 1 / ((float)pump.last_ccr / TIM_FREQ * 6. * BLDC_MAGPAIRS);
-            pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
-            arr = (uint32_t)(TIM_FREQ / 6. / BLDC_MAGPAIRS / (htim6.Instance->PSC + 1) / pump.speed * 60. - 1);
-            if(closeloopcnt >= 100)
-            {
-                pump.usearr = 1;
-                pump.closeloop.prev2err = pump.closeloop.preverr;
-                pump.closeloop.preverr = pump.closeloop.err;
-                pump.closeloop.err = pump.targetspeed - pump.filtspeed;
-                pump.closeloop.interr += pump.closeloop.err * 100 * bldc_delta / 1000.;
-                pump.closeloop.differr = (pump.closeloop.err - 2 * pump.closeloop.preverr + pump.closeloop.prev2err) / (100 * bldc_delta / 1000.);
-                if(pump.closeloop.interr > 100) pump.closeloop.interr = 100;
-                if(pump.closeloop.interr < -100) pump.closeloop.interr = -100;
-                pump.closeloop.out = pump.closeloop.kp * pump.closeloop.err +
-                                     pump.closeloop.ki * pump.closeloop.interr +
-                                     pump.closeloop.kd * pump.closeloop.differr;
-                pump.duty = DutyByTargetPump(target + pump.closeloop.out);
-                target += pump.closeloop.out;
-                closeloopcnt = 0;
-            }
-            closeloopcnt += 1;
-            break;
-
-        default:
-            pump.control_mode_t = IDLE;
-            break;
-        }
-    }
-}
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-    int32_t new_ccr;
+    int32_t pump_new_ccr;
 
     if(htim == &htim2 && pump.control_mode_t == CLOSELOOP)
     {
@@ -418,26 +261,36 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             if(pump.field_state == STATE_5)
             {
                 __HAL_TIM_SET_COUNTER(&htim2, 0);
-                new_ccr = ((__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_2)) +
+                pump_new_ccr = ((__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_2)) +
                         (__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_3)));
-                if(new_ccr > 0)
+                if(pump_new_ccr > 0)
                 {
-                    pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * new_ccr / 6;
+                    pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * pump_new_ccr / 6;
                 }
                 else{
-                    pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * new_ccr / 6;
+                    pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * pump_new_ccr / 6;
                 }
                 pump.field_state = STATE_6;
             }
         }
     }
+
+    else if(htim == &htim4)
+    {
+        if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+        {
+            __HAL_TIM_SET_COUNTER(&htim3, 0);
+        }
+    }
+
+
     if(pump.usearr && pump.control_mode_t == CLOSELOOP)
     {
-        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(arr * 0.4 + target * 0.6));
+        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(pump.closeloop.arr * 0.4 + pump.closeloop.target * 0.6));
     }
     else if(pump.control_mode_t == CLOSELOOP)
     {
-        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + arr * 0.04 + target * 0.06));
+        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + pump.closeloop.arr * 0.04 + pump.closeloop.target * 0.06));
     }
 
     __HAL_TIM_SET_COUNTER(&htim6, 0);
