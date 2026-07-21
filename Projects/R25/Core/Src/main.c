@@ -202,7 +202,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else if(htim == &htim7)
     {
-        if(starter.control_mode_t != CLOSELOOP)
+        if(1)//starter.control_mode_t != CLOSELOOP)
         {
             starter.field_state = (starter.field_state + 1) % 6;
         }
