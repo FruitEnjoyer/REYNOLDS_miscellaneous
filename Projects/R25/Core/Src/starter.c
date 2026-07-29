@@ -182,7 +182,7 @@ void Starter_Update()
                 STARTER_SPEEDUP_SET_PSC(starter.startup.speed);
                 starter.startup.cnt = 0;
             }
-            else if(starter.startup.cnt > 500)
+            else if(starter.startup.cnt > 5)
             {
                 starter.startup.cnt = 0;
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
@@ -192,7 +192,7 @@ void Starter_Update()
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
                 starter.control_mode_t = CLOSELOOP;
-                //starter.duty = 130;
+                starter.duty = 150;
             }
             starter.startup.cnt += 1;
             break;
@@ -208,7 +208,7 @@ void Starter_Update()
 
             starter.speed = 60.f / ((STARTER_IC_PSC + 1) * (float)starter.last_ccr / STARTER_TIM_FREQ * 6. * STARTER_MAGPAIRS);
             starter.filtspeed = 0.999 * starter.filtspeed + 0.001 * starter.speed;
-            starter.closeloop.arr = (uint32_t)(STARTER_TIM_FREQ / 6. / STARTER_MAGPAIRS / (htim7.Instance->PSC + 1) / starter.speed * 60. - 1);
+            //starter.closeloop.arr = (uint32_t)(STARTER_TIM_FREQ / 6. / STARTER_MAGPAIRS / (htim7.Instance->PSC + 1) / starter.speed * 60. - 1);
 #if 0
             if(pump.closeloop.cnt >= 100)
             {

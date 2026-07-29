@@ -198,8 +198,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if(pump.control_mode_t != CLOSELOOP)
         {
             pump.field_state = (pump.field_state + 1) % 6;
+            BLDC_SetPWM(&pump);
         }
-        BLDC_SetPWM(&pump);
+        //BLDC_SetPWM(&pump);
         HAL_TIM_Base_Start_IT(htim);
     }
     else if(htim == &htim7)
@@ -207,8 +208,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if(starter.control_mode_t != CLOSELOOP)
         {
             starter.field_state = (starter.field_state + 1) % 6;
+            BLDC_SetPWM(&starter);
         }
-        BLDC_SetPWM(&starter);
+        //BLDC_SetPWM(&starter);
         HAL_TIM_Base_Start_IT(htim);
     }
     else if(htim == &htim2 || htim == &htim5)
@@ -310,6 +312,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             }
         }
         starter_catchcallback = 1;
+        BLDC_SetPWM(&starter);
     }
     else if(htim == &htim4)
     {
@@ -344,6 +347,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
 
         }
+        BLDC_SetPWM(&starter);
     }
 
     if(starter_catchcallback && starter.usearr && starter.control_mode_t == CLOSELOOP)
@@ -368,11 +372,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     {
         __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(pump.closeloop.arr * 0.4 + pump.closeloop.target * 0.6));
         __HAL_TIM_SET_COUNTER(&htim6, 0);
+        BLDC_SetPWM(&pump);
     }
     else if(pump_catchcallback && pump.control_mode_t == CLOSELOOP)
     {
         __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + pump.closeloop.arr * 0.04 + pump.closeloop.target * 0.06));
         __HAL_TIM_SET_COUNTER(&htim6, 0);
+        BLDC_SetPWM(&pump);
     }
     //__HAL_TIM_SET_COUNTER(&htim7, 0);
 }

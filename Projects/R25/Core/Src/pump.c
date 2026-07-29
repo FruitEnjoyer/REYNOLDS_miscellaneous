@@ -28,7 +28,7 @@ bldc_t pump = {
         .closeloop.target = PUMP_ARR_INITTARGET,
         .closeloop.cnt = 0,
         .filtspeed = 3000,
-        .targetspeed = 20000
+        .targetspeed = 0
 };
 
 
@@ -62,7 +62,7 @@ void Pump_Update()
                 HAL_TIM_Base_Stop_IT(&htim6);
                 pump.idle.disabletim_flag = 0;
             }
-            if(pump.idle.run_flag)
+            if(pump.targetspeed >= 150)
             {
                 HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
                 HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
@@ -79,7 +79,7 @@ void Pump_Update()
                 pump.last_ccr = 100000;
                 pump.duty = PUMP_STARTUP_MINDUTY;
                 pump.filtspeed = 3000;
-                pump.targetspeed = 8000;
+                //pump.targetspeed = 200;
                 pump.closeloop.needrestart_flag = 0;
                 pump.speed = 0;
                 pump.startup.cnt = 0;
@@ -95,7 +95,7 @@ void Pump_Update()
             }
             break;
         case ALIGN:
-            if(!pump.idle.run_flag)
+            if(pump.targetspeed < 150)
             {
                 pump.control_mode_t = IDLE;
             }
@@ -113,7 +113,7 @@ void Pump_Update()
             }
             break;
         case PRESTARTUP:
-            if(!pump.idle.run_flag)
+            if(pump.targetspeed < 150)
             {
                 pump.control_mode_t = IDLE;
             }
@@ -126,7 +126,7 @@ void Pump_Update()
             break;
 
         case STARTUP:
-            if(!pump.idle.run_flag)
+            if(pump.targetspeed < 150)
             {
                 pump.control_mode_t = IDLE;
             }
@@ -137,7 +137,7 @@ void Pump_Update()
                 pump.startup.t += bldc_delta / 1000.f;
                 PUMP_SPEEDUP_SET_PSC(pump.startup.speed);
                 pump.startup.cnt = 0;
-            } else if(pump.startup.cnt > 500)
+            } else if(pump.startup.cnt > 5)
             {
                 pump.control_mode_t = CLOSELOOP;
                 pump.startup.cnt = 0;
@@ -152,7 +152,7 @@ void Pump_Update()
             break;
 
         case CLOSELOOP:
-            if(!pump.idle.run_flag || pump.closeloop.needrestart_flag)
+            if(pump.closeloop.needrestart_flag || pump.targetspeed < 150)
             {
                 pump.closeloop.needrestart_flag = 0;
                 pump.field_state = STATE_OFF;
@@ -162,6 +162,25 @@ void Pump_Update()
 
             pump.speed = 60. * 1 / ((float)pump.last_ccr / PUMP_TIM_FREQ * 6. * PUMP_MAGPAIRS);
             pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
+
+            if(pump.closeloop.cnt >= 10)
+            {
+                if(pump.targetspeed - pump.duty > 50)
+                {
+                    pump.duty += 50;
+                }
+                else if(pump.targetspeed - pump.duty < -50)
+                {
+                    if(pump.duty - 50 > 150) pump.duty -= 50;
+                    else pump.duty = 150;
+                }
+                else
+                {
+                    pump.duty = pump.targetspeed;
+                }
+                pump.closeloop.cnt = 0;
+            }
+            /*
             pump.closeloop.arr = (uint32_t)(PUMP_TIM_FREQ / 6. / PUMP_MAGPAIRS / (htim6.Instance->PSC + 1) / pump.speed * 60. - 1);
             if(pump.closeloop.cnt >= 100)
             {
@@ -180,6 +199,7 @@ void Pump_Update()
                 pump.closeloop.target += pump.closeloop.out;
                 pump.closeloop.cnt = 0;
             }
+            */
             pump.closeloop.cnt += 1;
             break;
 
@@ -189,7 +209,7 @@ void Pump_Update()
         }
     }
 }
-
+/*
 static int16_t pump_targets[29] = {
         3900, 3000, 2400, 1950, 1650,
         1475, 1400, 1200, 950, 900,
@@ -205,7 +225,7 @@ static uint16_t pump_duties[29] = {
         560, 580, 600, 620, 640,
         660, 680, 700, 740, 780,
         820, 840, 880, 920
-};
+};*/
 
 float speedup_inter[PUMP_SPEEDUP_INTER_NUM] = {
 /*0.0024726231566347743,
@@ -230,7 +250,7 @@ float speedup_inter[PUMP_SPEEDUP_INTER_NUM] = {
         0.29527121929156586, 0.33742360216461964, 0.38232892018305953, 0.42933794056115027, 0.477657165722823, 0.5263981951626329, 0.5746412513676964,
         0.621503557088486, 0.6662020005138252, 0.7081009948172341, 0.7467400711819927, 0.7818402365299438, 0.8132920616370185, 0.8411308951190849 };
 
-uint16_t DutyByTargetPump(float target)
+/*uint16_t DutyByTargetPump(float target)
 {
     if(target >= pump_targets[0])
     {
@@ -254,7 +274,7 @@ uint16_t DutyByTargetPump(float target)
 
         return (uint16_t)(a * target + b);
     }
-}
+}*/
 
 float Pump_Speedup(float t)
 {
@@ -283,4 +303,11 @@ float Pump_Speedup(float t)
         res = a * t + b;
     }
     return res;
+}
+
+void Pump_SetDuty(int32_t duty)
+{
+    if(duty > 999) duty = 999;
+    else if(duty < 0) duty = 0;
+    pump.targetspeed = duty;
 }

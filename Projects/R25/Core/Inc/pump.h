@@ -16,7 +16,7 @@
 #define PUMP_PRESTARTUP_DELAY      0     // [ms]
 #define PUMP_SPEEDUP_ACCELERATION  2700  // [rpm / sec]
 #define PUMP_SPEEDUP_MINSPEED      60    // [rpm]
-#define PUMP_SPEEDUP_MAXSPEED      2700  // [rpm]
+#define PUMP_SPEEDUP_MAXSPEED      2200  // [rpm]
 #define PUMP_STARTUP_MINDUTY       150
 #define PUMP_ARR_INITTARGET         5800
 #define PUMP_SPEEDUP_INTER_NUM 42
@@ -34,5 +34,6 @@
 void Pump_Update();
 uint16_t DutyByTargetPump(float target);
 float Pump_Speedup(float t);
+void Pump_SetDuty(int32_t duty);
 
 #endif /* INC_PUMP_H_ */
