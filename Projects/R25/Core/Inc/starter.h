@@ -14,14 +14,15 @@
 #define STARTER_MAGPAIRS              2
 #define STARTER_ALIGN_DELAY           1900     // [ms]
 #define STARTER_PRESTARTUP_DELAY      0     // [ms]
-#define STARTER_SPEEDUP_ACCELERATION  450  // [rpm / sec]
+#define STARTER_SPEEDUP_ACCELERATION  400  // [rpm / sec]
 #define STARTER_SPEEDUP_MINSPEED      60    // [rpm]
 #define STARTER_SPEEDUP_MAXSPEED      3600  // [rpm]
 #define STARTER_STARTUP_MINDUTY       170
-#define STARTER_ARR_INITTARGET         5800
+#define STARTER_ARR_INITTARGET         3000
 #define STARTER_SPEEDUP_INTER_NUM 42
 #define STARTER_TIM_FREQ 160000000
 #define STARTER_TIM_INIT_ARR 5999
+#define STARTER_IC_PSC    49
 #define STARTER_PWM_ARR 1000
 #define STARTER_KP    (-0.025f)
 #define STARTER_KI    (-0.01f)

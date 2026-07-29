@@ -125,6 +125,8 @@ int main(void)
     AD7689_Init(&extADC);
     pump.idle.run_flag = 0;
     starter.idle.run_flag = 0;
+    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3);
+    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -202,7 +204,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else if(htim == &htim7)
     {
-        if(1)//starter.control_mode_t != CLOSELOOP)
+        if(starter.control_mode_t != CLOSELOOP)
         {
             starter.field_state = (starter.field_state + 1) % 6;
         }
@@ -218,7 +220,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-    int32_t pump_new_ccr;
+    int32_t pump_new_ccr, starter_new_ccr;
+    int32_t starter_arr, pump_arr;
+    uint8_t pump_catchcallback = 0, starter_catchcallback = 0;
 
     if(htim == &htim2 && pump.control_mode_t == CLOSELOOP)
     {
@@ -248,6 +252,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 pump.field_state = STATE_5;
             }
         }
+        pump_catchcallback = 1;
     } else if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
     {
         if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
@@ -273,27 +278,103 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 pump.field_state = STATE_6;
             }
         }
+        pump_catchcallback = 1;
     }
 
+    else if(htim == &htim3)
+    {
+        if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+        {
+            if(starter.field_state == STATE_3)
+            {
+                __HAL_TIM_SET_COUNTER(&htim4, 0);
+                starter.field_state = STATE_4;
+            }
+        } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
+        {
+            if(starter.field_state == STATE_6)
+            {
+                starter.field_state = STATE_1;
+            }
+        } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
+        {
+            if(starter.field_state == STATE_1)
+            {
+                starter.field_state = STATE_2;
+            }
+        } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
+        {
+            if(starter.field_state == STATE_4)
+            {
+                starter.field_state = STATE_5;
+            }
+        }
+        starter_catchcallback = 1;
+    }
     else if(htim == &htim4)
     {
         if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
         {
-            __HAL_TIM_SET_COUNTER(&htim3, 0);
+            if(starter.field_state == STATE_2)
+            {
+                starter.field_state = STATE_3;
+            }
+            starter_catchcallback = 1;
+        } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
+        {
+            if(starter.field_state == STATE_5)
+            {
+                __HAL_TIM_SET_COUNTER(&htim3, 0);
+
+                starter_new_ccr = ((__HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_2)) +
+                        (__HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_3)));
+                if(starter_new_ccr > 0)
+                {
+                    starter.last_ccr = 0.95 * starter.last_ccr + 0.05 * starter_new_ccr / 6;
+                }
+                else{
+                    starter.last_ccr = 0.95 * starter.last_ccr - 0.05 * starter_new_ccr / 6;
+                }
+                starter.field_state = STATE_6;
+            }
+            starter_catchcallback = 1;
+        }
+
+        else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3 || htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
+        {
+
         }
     }
 
+    if(starter_catchcallback && starter.usearr && starter.control_mode_t == CLOSELOOP)
+    {
+        //__HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)(starter.closeloop.arr * 0.2 + starter.closeloop.target * 0.8));
+        starter_arr = starter.closeloop.arr * 0.2 + starter.closeloop.target * 0.8;
+    }
+    else if(starter_catchcallback && starter.control_mode_t == CLOSELOOP)
+    {
+        //__HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)(htim7.Instance->ARR * 0.90 + starter.closeloop.arr * 0.04 + starter.closeloop.target * 0.06));
+        starter_arr = htim7.Instance->ARR * 0.90 + starter.closeloop.arr * 0.04 + starter.closeloop.target * 0.06;
+    }
+    if(starter_catchcallback && starter.control_mode_t == CLOSELOOP)
+    {
+        if(starter_arr < 0)
+            starter_arr = 0;
+        __HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)starter_arr);
+        __HAL_TIM_SET_COUNTER(&htim7, 0);
+    }
 
-    if(pump.usearr && pump.control_mode_t == CLOSELOOP)
+    if(pump_catchcallback && pump.usearr && pump.control_mode_t == CLOSELOOP)
     {
         __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(pump.closeloop.arr * 0.4 + pump.closeloop.target * 0.6));
+        __HAL_TIM_SET_COUNTER(&htim6, 0);
     }
-    else if(pump.control_mode_t == CLOSELOOP)
+    else if(pump_catchcallback && pump.control_mode_t == CLOSELOOP)
     {
         __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + pump.closeloop.arr * 0.04 + pump.closeloop.target * 0.06));
+        __HAL_TIM_SET_COUNTER(&htim6, 0);
     }
-
-    __HAL_TIM_SET_COUNTER(&htim6, 0);
+    //__HAL_TIM_SET_COUNTER(&htim7, 0);
 }
 /* USER CODE END 4 */
 

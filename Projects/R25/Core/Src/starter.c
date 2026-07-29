@@ -96,7 +96,7 @@ void Starter_Update()
                 starter.control_mode_t = ALIGN;
                 starter.idle.disabletim_flag = 1;
                 starter.field_state = STATE_1;
-                starter.last_ccr = 100000;
+                starter.last_ccr = 7300;
                 //starter.duty = STARTER_STARTUP_MINDUTY;
                 starter.filtspeed = 3000;
                 starter.targetspeed = 8000;
@@ -182,7 +182,7 @@ void Starter_Update()
                 STARTER_SPEEDUP_SET_PSC(starter.startup.speed);
                 starter.startup.cnt = 0;
             }
-            else if(starter.startup.cnt > 50)
+            else if(starter.startup.cnt > 500)
             {
                 starter.startup.cnt = 0;
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
@@ -191,7 +191,8 @@ void Starter_Update()
                 HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
                 HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
-                //starter.control_mode_t = CLOSELOOP;
+                starter.control_mode_t = CLOSELOOP;
+                //starter.duty = 130;
             }
             starter.startup.cnt += 1;
             break;
@@ -204,10 +205,11 @@ void Starter_Update()
                 BLDC_SetPWM(&starter);
                 starter.control_mode_t = IDLE;
             }
+
+            starter.speed = 60.f / ((STARTER_IC_PSC + 1) * (float)starter.last_ccr / STARTER_TIM_FREQ * 6. * STARTER_MAGPAIRS);
+            starter.filtspeed = 0.999 * starter.filtspeed + 0.001 * starter.speed;
+            starter.closeloop.arr = (uint32_t)(STARTER_TIM_FREQ / 6. / STARTER_MAGPAIRS / (htim7.Instance->PSC + 1) / starter.speed * 60. - 1);
 #if 0
-            pump.speed = 60. * 1 / ((float)pump.last_ccr / PUMP_TIM_FREQ * 6. * PUMP_MAGPAIRS);
-            pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
-            pump.closeloop.arr = (uint32_t)(PUMP_TIM_FREQ / 6. / PUMP_MAGPAIRS / (htim6.Instance->PSC + 1) / pump.speed * 60. - 1);
             if(pump.closeloop.cnt >= 100)
             {
                 pump.usearr = 1;
