@@ -121,9 +121,8 @@ int main(void)
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
     HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
     AD7689_Init(&extADC);
-    pump.idle.run_flag = 0;
+    pump.targetspeed = 0;
     starter.idle.run_flag = 0;
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
@@ -137,6 +136,7 @@ int main(void)
         Pump_Update();
         HeartbeatLED_Update();
         AD7689_Update();
+        LED2_GPIO_Port->BSRR = ((LED2_GPIO_Port->ODR & LED2_Pin) << 16u) | (~LED2_GPIO_Port->ODR & LED2_Pin);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -200,8 +200,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             pump.field_state = (pump.field_state + 1) % 6;
             BLDC_SetPWM(&pump);
         }
-        //BLDC_SetPWM(&pump);
-        HAL_TIM_Base_Start_IT(htim);
     }
     else if(htim == &htim7)
     {
@@ -210,8 +208,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             starter.field_state = (starter.field_state + 1) % 6;
             BLDC_SetPWM(&starter);
         }
-        //BLDC_SetPWM(&starter);
-        HAL_TIM_Base_Start_IT(htim);
     }
     else if(htim == &htim2 || htim == &htim5)
     {
@@ -254,6 +250,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 pump.field_state = STATE_5;
             }
         }
+        BLDC_SetPWM(&pump);
         pump_catchcallback = 1;
     } else if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
     {
@@ -280,6 +277,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 pump.field_state = STATE_6;
             }
         }
+        BLDC_SetPWM(&pump);
         pump_catchcallback = 1;
     }
 
@@ -349,7 +347,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         }
         BLDC_SetPWM(&starter);
     }
-
+#if 0
     if(starter_catchcallback && starter.usearr && starter.control_mode_t == CLOSELOOP)
     {
         //__HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)(starter.closeloop.arr * 0.2 + starter.closeloop.target * 0.8));
@@ -381,6 +379,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         BLDC_SetPWM(&pump);
     }
     //__HAL_TIM_SET_COUNTER(&htim7, 0);
+#endif
 }
 /* USER CODE END 4 */
 

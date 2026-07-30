@@ -15,19 +15,19 @@ systemvars_t systemvars = { 0, };
 AD7689_t extADC = { .spi = &hspi1, .nss_mode = NSS_SOFTWARE, .nss_port =
         AD7689_CS_GPIO_Port, .nss_pin = AD7689_CS_Pin };
 
-void HeartbeatLED_Update()
+__attribute__((always_inline)) inline void HeartbeatLED_Update()
 {
     static uint32_t heartbeat_ticks = 0;
     const static uint32_t heartbeat_delta = 125;
 
     if (heartbeat_ticks + heartbeat_delta < HAL_GetTick())
     {
-        HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+        LED1_GPIO_Port->BSRR = ((LED1_GPIO_Port->ODR & LED1_Pin) << 16u) | (~LED1_GPIO_Port->ODR & LED1_Pin);
         heartbeat_ticks += heartbeat_delta;
     }
 }
 
-void AD7689_Update()
+__attribute__((always_inline)) inline void AD7689_Update()
 {
     static uint32_t ad7689_ticks = 0;
     const static uint32_t ad7689_delta = 10;

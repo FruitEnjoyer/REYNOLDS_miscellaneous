@@ -21,7 +21,7 @@
 #include "fdcan.h"
 
 /* USER CODE BEGIN 0 */
-#include "CAN_protocol/can_protocol.h"
+#include "../../../../CAN_protocol/can_protocol.h"
 /* USER CODE END 0 */
 
 FDCAN_HandleTypeDef hfdcan1;

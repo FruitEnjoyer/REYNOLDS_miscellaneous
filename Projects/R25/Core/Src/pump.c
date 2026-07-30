@@ -137,16 +137,20 @@ void Pump_Update()
                 pump.startup.t += bldc_delta / 1000.f;
                 PUMP_SPEEDUP_SET_PSC(pump.startup.speed);
                 pump.startup.cnt = 0;
-            } else if(pump.startup.cnt > 5)
+            } else if(pump.startup.cnt > 2)
             {
-                pump.control_mode_t = CLOSELOOP;
-                pump.startup.cnt = 0;
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
                 HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_1);
                 HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_2);
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
                 HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);
+                if(pump.startup.cnt > 10)
+                {
+                    pump.control_mode_t = CLOSELOOP;
+                    pump.startup.cnt = 0;
+                    HAL_TIM_Base_Stop_IT(&htim6);
+                }
             }
             pump.startup.cnt += 1;
             break;

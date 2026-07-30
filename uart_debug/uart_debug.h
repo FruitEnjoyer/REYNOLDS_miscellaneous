@@ -13,7 +13,7 @@ extern "C"{
 #endif
 
 #include "main.h"
-#include "BLDC/bldc.h"
+#include "../BLDC/bldc.h"
 
 void DBG_SendInfo_BLDC(bldc_t* bldc);
 
