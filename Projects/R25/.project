@@ -46,6 +46,11 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>Core/Thermocouple</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>Core/AD7689/AD7689.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/AD7689/AD7689.c</locationURI>
@@ -84,6 +89,16 @@
 			<name>Core/LowPassFilter/lowpassfilter.h</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/LowPassFilter/lowpassfilter.h</locationURI>
+		</link>
+		<link>
+			<name>Core/Thermocouple/thermocouple.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Thermocouple/thermocouple.c</locationURI>
+		</link>
+		<link>
+			<name>Core/Thermocouple/thermocouple.h</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Thermocouple/thermocouple.h</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

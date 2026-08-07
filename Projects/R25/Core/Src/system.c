@@ -8,7 +8,7 @@
 #include "system.h"
 #include "adc.h"
 #include "spi.h"
-
+#include "tim.h"
 
 systemvars_t systemvars = { 0, };
 
@@ -38,6 +38,48 @@ __attribute__((always_inline)) inline void AD7689_Update()
         HAL_ADC_Start_IT(&hadc1);
         ad7689_ticks += ad7689_delta;
     }
+}
+
+void ValveStart_SetDuty(uint16_t duty)
+{
+    if(duty < 0)
+    {
+        duty = 0;
+    }
+    else if(duty > 860)
+    {
+        duty = 860;
+    }
+    htim15.Instance->CCR2 = duty;
+}
+
+void ValveMain_SetDuty(uint16_t duty)
+{
+    if(duty < 0)
+    {
+        duty = 0;
+    }
+    else if(duty > 860)
+    {
+        duty = 860;
+    }
+    htim15.Instance->CCR1 = duty;
+}
+
+void Ignition_SetDuty(uint16_t duty)
+{
+#ifdef IGNITION_SPARK
+    if(duty < 0)
+    {
+        duty = 0;
+    }
+    else if(duty > 90)
+    {
+        duty = 90;
+    }
+    htim17.Instance->CCR1 = duty;
+#else
+#endif
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)

@@ -30,6 +30,7 @@
 
 #define STARTER_SPEEDUP_SET_PSC(speed) __HAL_TIM_SET_PRESCALER(&htim7, (uint32_t)(STARTER_TIM_FREQ / 6. / (STARTER_TIM_INIT_ARR + 1) / STARTER_MAGPAIRS / speed * 60 - 1)); // speed = [rpm]
 
+extern bldc_t starter;
 
 void Starter_Update();
 uint16_t DutyByTargetStarter(float target);

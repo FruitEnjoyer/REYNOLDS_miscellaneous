@@ -23,13 +23,10 @@
 #define PUMP_TIM_FREQ 160000000
 #define PUMP_TIM_INIT_ARR 5999
 #define PUMP_PWM_ARR 1000
-#define PUMP_KP    (-0.025f)
-#define PUMP_KI    (-0.01f)
-#define PUMP_KD    (-0.001f)
-
 
 #define PUMP_SPEEDUP_SET_PSC(speed) __HAL_TIM_SET_PRESCALER(&htim6, (uint32_t)(PUMP_TIM_FREQ / 6. / (PUMP_TIM_INIT_ARR + 1) / PUMP_MAGPAIRS / speed * 60 - 1)); // speed = [rpm]
 
+extern bldc_t pump;
 
 void Pump_Update();
 uint16_t DutyByTargetPump(float target);

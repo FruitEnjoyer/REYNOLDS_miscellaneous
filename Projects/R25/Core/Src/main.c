@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "crc.h"
+#include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
 #include "tim.h"
@@ -51,17 +53,15 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern bldc_t pump;
-extern bldc_t starter;
-
-//int32_t target = PUMP_ARR_INITTARGET;
-uint32_t wrong_ccr = 0;
-uint32_t x = 0;
-
-//uint16_t closeloopcnt = 0;
-
-extern AD7689_t extADC;
-extern float speedup_inter[PUMP_SPEEDUP_INTER_NUM];
+struct TIM tim;
+#pragma pack(0)
+struct ADC_1 adc_1;
+#pragma pack(0)
+struct CONFIG config;
+struct CONFIG *p_config;
+#pragma pack(0)
+struct GET_CONFIG get_config;
+struct SET_CONFIG set_config;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,7 +72,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//uint32_t temp = 0;
+
 /* USER CODE END 0 */
 
 /**
@@ -104,6 +104,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_FDCAN1_Init();
   MX_SPI1_Init();
   MX_TIM1_Init();
@@ -119,23 +120,90 @@ int main(void)
   MX_TIM17_Init();
   MX_ADC1_Init();
   MX_TIM7_Init();
+  MX_TIM16_Init();
+  MX_CRC_Init();
+  MX_TIM20_Init();
   /* USER CODE BEGIN 2 */
+    HAL_UART_Abort(rs485_puart);
+    HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)(rs.rs485_rx_buff), sizeof(rs.rs485_rx_buff));
+    __HAL_UART_ENABLE_IT(rs485_puart, UART_IT_IDLE);
+
+    mtm.crc32 = HAL_CRC_Calculate(&hcrc, (uint32_t*)0x08000000, 131072);
+    mtm.crc16 = (mtm.crc32 >> 16) ^ (mtm.crc32 & 0xFF);
+
+    // Disable AD7689 chip select
+    HAL_GPIO_WritePin(AD7689_CS_GPIO_Port, AD7689_CS_Pin, GPIO_PIN_SET);
+    FLASH_CS_UNSELECT;
+
     HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-    AD7689_Init(&extADC);
     pump.targetspeed = 0;
     starter.idle.run_flag = 0;
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
+
+    // Клапаны
+    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+
+    // Свеча или искра
+    HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
+    HAL_TIMEx_PWMN_Start(&htim17, TIM_CHANNEL_1);
+    HAL_TIM_Base_Start_IT(&htim16);
+    HAL_TIM_Base_Start_IT(&htim20);
+    HAL_Delay(5);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while(1)
     {
-        Starter_Update();
-        Pump_Update();
-        HeartbeatLED_Update();
-        AD7689_Update();
+        if(tim.flag_1000Hz)
+        {
+            tim.flag_1000Hz = 0;
+            Pump_Update();
+            Starter_Update();
+        }
+        if(tim.flag_10Hz)
+        {
+            tim.flag_10Hz = 0;
+            LED1_GPIO_Port->BSRR = ((LED1_GPIO_Port->ODR & LED1_Pin) << 16u) | (~LED1_GPIO_Port->ODR & LED1_Pin);
+
+            if(flash.tm_on_flag)
+            {
+                TM_updater(tim.timer_ms);
+            }
+
+            rs.rs485_active_count++;
+            if ((rs.rs485_active_count > 50) && (flash.tm_upload_flag == 0))
+            {
+                rs.rs485_active_count = 0;
+                HAL_UART_Abort(rs485_puart);
+                HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)rs.rs485_rx_buff, sizeof(rs.rs485_rx_buff));
+                 __HAL_UART_ENABLE_IT(rs485_puart, UART_IT_IDLE);
+            }
+        }
+
+        State_machine_flash();
+
+        //обработка rs-485------------------------------------------------------------------------------------------------
+        if(rs.rs485_rx_flag)
+          {
+              rs.rs485_rx_flag = 0;
+              Frame_Test();
+          }
+        if(rs.rs485_tx_flag && (flash.fat_upload_flag == 0) && (flash.tm_upload_flag == 0))
+        {
+            rs.rs485_tx_flag = 0;
+            if(rs.config_updating)
+            {
+                HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)(&config), sizeof(config) * 2);
+            }
+            else
+            {
+                HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)rs.rs485_rx_buff, sizeof(rs.rs485_rx_buff));
+            }
+        }
+
         LED2_GPIO_Port->BSRR = ((LED2_GPIO_Port->ODR & LED2_Pin) << 16u) | (~LED2_GPIO_Port->ODR & LED2_Pin);
     /* USER CODE END WHILE */
 
@@ -209,18 +277,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             BLDC_SetPWM(&starter);
         }
     }
+    else if(htim == &htim16)
+    {
+        tim.flag_1000Hz = 1;
+    }
+    else if(htim == &htim20)
+    {
+        tim.flag_10Hz = 1;
+    }
     else if(htim == &htim2 || htim == &htim5)
     {
         __HAL_TIM_ENABLE_IT(htim, TIM_IT_UPDATE);
     }
 }
 
-
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     int32_t pump_new_ccr, starter_new_ccr;
-    int32_t starter_arr, pump_arr;
-    uint8_t pump_catchcallback = 0, starter_catchcallback = 0;
 
     if(htim == &htim2 && pump.control_mode_t == CLOSELOOP)
     {
@@ -251,7 +324,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             }
         }
         BLDC_SetPWM(&pump);
-        pump_catchcallback = 1;
     } else if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
     {
         if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
@@ -278,7 +350,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             }
         }
         BLDC_SetPWM(&pump);
-        pump_catchcallback = 1;
     }
 
     else if(htim == &htim3)
@@ -309,7 +380,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 starter.field_state = STATE_5;
             }
         }
-        starter_catchcallback = 1;
         BLDC_SetPWM(&starter);
     }
     else if(htim == &htim4)
@@ -320,7 +390,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.field_state = STATE_3;
             }
-            starter_catchcallback = 1;
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
             if(starter.field_state == STATE_5)
@@ -338,7 +407,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 }
                 starter.field_state = STATE_6;
             }
-            starter_catchcallback = 1;
         }
 
         else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3 || htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
@@ -347,39 +415,47 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         }
         BLDC_SetPWM(&starter);
     }
-#if 0
-    if(starter_catchcallback && starter.usearr && starter.control_mode_t == CLOSELOOP)
-    {
-        //__HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)(starter.closeloop.arr * 0.2 + starter.closeloop.target * 0.8));
-        starter_arr = starter.closeloop.arr * 0.2 + starter.closeloop.target * 0.8;
-    }
-    else if(starter_catchcallback && starter.control_mode_t == CLOSELOOP)
-    {
-        //__HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)(htim7.Instance->ARR * 0.90 + starter.closeloop.arr * 0.04 + starter.closeloop.target * 0.06));
-        starter_arr = htim7.Instance->ARR * 0.90 + starter.closeloop.arr * 0.04 + starter.closeloop.target * 0.06;
-    }
-    if(starter_catchcallback && starter.control_mode_t == CLOSELOOP)
-    {
-        if(starter_arr < 0)
-            starter_arr = 0;
-        __HAL_TIM_SET_AUTORELOAD(&htim7, (uint32_t)starter_arr);
-        __HAL_TIM_SET_COUNTER(&htim7, 0);
-    }
+}
 
-    if(pump_catchcallback && pump.usearr && pump.control_mode_t == CLOSELOOP)
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if(huart == &huart1)
+        {
+            rs_232.rx_frame_size=Size;
+            rs_232.rx_flag=1;
+        }
+    if(huart == rs485_puart)
     {
-        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(pump.closeloop.arr * 0.4 + pump.closeloop.target * 0.6));
-        __HAL_TIM_SET_COUNTER(&htim6, 0);
-        BLDC_SetPWM(&pump);
+        rs.receive_package_size = Size;
+        rs.rs485_rx_flag = 1;
+        rs.rs485_active_count = 0;
     }
-    else if(pump_catchcallback && pump.control_mode_t == CLOSELOOP)
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart == &huart1)
     {
-        __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t)(htim6.Instance->ARR * 0.90 + pump.closeloop.arr * 0.04 + pump.closeloop.target * 0.06));
-        __HAL_TIM_SET_COUNTER(&htim6, 0);
-        BLDC_SetPWM(&pump);
+        rs_232.tx_flag = 0;
     }
-    //__HAL_TIM_SET_COUNTER(&htim7, 0);
-#endif
+    if(huart == rs485_puart)
+    {
+        rs.rs485_tx_flag = 1;
+    }
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+     if(hspi == &hspi1)
+     {
+         FLASH_CS_UNSELECT;
+         flash.rx_tx_flag = 1;
+        // spi_dma_flag=1;
+     }
+}
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+
 }
 /* USER CODE END 4 */
 
