@@ -58,7 +58,7 @@
               
           <stackSize>0x400</stackSize>
                   
-          <cpuclock>72</cpuclock>
+          <cpuclock>64</cpuclock>
                   
           <board>custom</board>
               

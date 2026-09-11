@@ -18,6 +18,7 @@
 #define PUMP_SPEEDUP_MINSPEED      60    // [rpm]
 #define PUMP_SPEEDUP_MAXSPEED      2200  // [rpm]
 #define PUMP_STARTUP_MINDUTY       150
+#define PUMP_CLOSELOOP_MINDUTY     0
 #define PUMP_ARR_INITTARGET         5800
 #define PUMP_SPEEDUP_INTER_NUM 42
 #define PUMP_TIM_FREQ 160000000
@@ -30,7 +31,6 @@ extern bldc_t pump;
 
 void Pump_Update();
 uint16_t DutyByTargetPump(float target);
-float Pump_Speedup(float t);
 void Pump_SetDuty(int32_t duty);
 
 #endif /* INC_PUMP_H_ */

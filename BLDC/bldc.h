@@ -31,7 +31,7 @@ extern "C"{
 
 #endif
 
-
+#pragma pack(0)
 typedef struct bldc{
     // Motor characteristics
     //const uint8_t pole_number; // Number of rotor magnetic poles
@@ -48,7 +48,8 @@ typedef struct bldc{
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
     volatile uint32_t last_ccr, fakelast_ccr;
-    float speed, filtspeed, speedbyarr, targetspeed;
+    float speed, speedbyarr, targetspeed;
+    uint32_t intspeed;
     volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;
     //uint32_t ic_freq;
@@ -80,7 +81,9 @@ typedef struct bldc{
         float kp, ki, kd, err, preverr, prev2err, interr, differr, out;
         uint8_t needrestart_flag;
     } closeloop;
+    uint32_t speed_cnt;
 } bldc_t;
+#pragma pack(1)
 
 
 void BLDC_SetPWM(bldc_t* bldc);

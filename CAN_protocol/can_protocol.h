@@ -19,14 +19,16 @@ extern "C"{
   #error "Please define board!"
 #endif
 
-// Define STB port and pin to enable TJA1042
-//#define TJA1042_STB_PORT
-//#define TJA1042_STB_PIN
+#define USE_CAN
+//#define USE_FDCAN
+#if defined(USE_CAN) && defined(USE_FDCAN)
+#error "Use either CAN or FDCAN only"
+#endif
 
-#if !defined(TJA1042_STB_PORT) || !defined(TJA1042_STB_PIN)
+// Define STB port and pin in CubeMX to enable TJA1042
+
+#if !defined(TJA1042_STB_GPIO_Port) || !defined(TJA1042_STB_Pin)
   #error "Please define STB port and pin"
-#else
-  #define 
 #endif
 
 
@@ -61,6 +63,36 @@ typedef struct MessageData
     } pumpdriver;
 } MessageData_t;
 
+#ifdef USE_CAN
+/**
+ * @brief Configure CAN peripheral with desired settings
+ *
+ * @param can pointer to an CAN handle structure
+ * @return HAL_StatusTypeDef result of configurating
+ */
+HAL_StatusTypeDef ConfigureCAN(CAN_HandleTypeDef* can);
+
+/**
+ * @brief Read CAN Rx buffer & interpret its data
+ *
+ * @param can pointer to an CAN handle structure
+ * @param dest pointer to a destination data structure
+ * @return HAL_StatusTypeDef result of reading
+ */
+HAL_StatusTypeDef ReadMessage(CAN_HandleTypeDef* can, MessageData_t* dest);
+
+/**
+ * @brief Send message with dedicated identifier into the bus
+ *
+ * @param can pointer to an CAN handle structure
+ * @param id CAN message identificator
+ * @param data pointer to source data structure
+ * @return HAL_StatusTypeDef result of sending
+ */
+HAL_StatusTypeDef SendMessage(CAN_HandleTypeDef* can, Message_ID_t id, MessageData_t* data);
+#endif
+
+#ifdef USE_FDCAN
 /**
  * @brief Configure FDCAN peripheral with desired settings
  * 
@@ -87,7 +119,7 @@ HAL_StatusTypeDef ReadMessage(FDCAN_HandleTypeDef* fdcan, MessageData_t* dest);
  * @return HAL_StatusTypeDef result of sending
  */
 HAL_StatusTypeDef SendMessage(FDCAN_HandleTypeDef* fdcan, Message_ID_t id, MessageData_t* data);
-
+#endif
 
 #ifdef __cplusplus
 }

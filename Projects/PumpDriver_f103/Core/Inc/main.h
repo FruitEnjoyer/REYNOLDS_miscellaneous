@@ -61,39 +61,42 @@ void Error_Handler(void);
 #define PUMP_CURR_GPIO_Port GPIOA
 #define HEAT_CURR_Pin GPIO_PIN_1
 #define HEAT_CURR_GPIO_Port GPIOA
-#define SPEED_B_Pin GPIO_PIN_2
-#define SPEED_B_GPIO_Port GPIOA
+#define PUMP_SPEED_B_Pin GPIO_PIN_2
+#define PUMP_SPEED_B_GPIO_Port GPIOA
 #define VBUS_Pin GPIO_PIN_3
 #define VBUS_GPIO_Port GPIOA
-#define PUMP_TARGET_Pin GPIO_PIN_6
-#define PUMP_TARGET_GPIO_Port GPIOA
-#define HEAT_TARGET_Pin GPIO_PIN_0
-#define HEAT_TARGET_GPIO_Port GPIOB
+#define PUMP_CONTROL_Pin GPIO_PIN_6
+#define PUMP_CONTROL_GPIO_Port GPIOA
+#define HEAT_CONTROL_Pin GPIO_PIN_0
+#define HEAT_CONTROL_GPIO_Port GPIOB
 #define LED_Pin GPIO_PIN_12
 #define LED_GPIO_Port GPIOB
-#define PWMN_A_Pin GPIO_PIN_13
-#define PWMN_A_GPIO_Port GPIOB
-#define PWMN_B_Pin GPIO_PIN_14
-#define PWMN_B_GPIO_Port GPIOB
-#define PWMN_C_Pin GPIO_PIN_15
-#define PWMN_C_GPIO_Port GPIOB
-#define PWM_A_Pin GPIO_PIN_8
-#define PWM_A_GPIO_Port GPIOA
-#define PWM_B_Pin GPIO_PIN_9
-#define PWM_B_GPIO_Port GPIOA
-#define PWM_C_Pin GPIO_PIN_10
-#define PWM_C_GPIO_Port GPIOA
-#define PWM_HEAT_Pin GPIO_PIN_11
-#define PWM_HEAT_GPIO_Port GPIOA
-#define SPEED_A_Pin GPIO_PIN_15
-#define SPEED_A_GPIO_Port GPIOA
-#define SPEED_C_Pin GPIO_PIN_6
-#define SPEED_C_GPIO_Port GPIOB
-#define CAN_STB_Pin GPIO_PIN_7
-#define CAN_STB_GPIO_Port GPIOB
+#define PUMP_PWMN_A_Pin GPIO_PIN_13
+#define PUMP_PWMN_A_GPIO_Port GPIOB
+#define PUMP_PWMN_B_Pin GPIO_PIN_14
+#define PUMP_PWMN_B_GPIO_Port GPIOB
+#define PUMP_PWMN_C_Pin GPIO_PIN_15
+#define PUMP_PWMN_C_GPIO_Port GPIOB
+#define PUMP_PWM_A_Pin GPIO_PIN_8
+#define PUMP_PWM_A_GPIO_Port GPIOA
+#define PUMP_PWM_B_Pin GPIO_PIN_9
+#define PUMP_PWM_B_GPIO_Port GPIOA
+#define PUMP_PWM_C_Pin GPIO_PIN_10
+#define PUMP_PWM_C_GPIO_Port GPIOA
+#define HEAT_PWM_Pin GPIO_PIN_11
+#define HEAT_PWM_GPIO_Port GPIOA
+#define HEAT_EN_Pin GPIO_PIN_12
+#define HEAT_EN_GPIO_Port GPIOA
+#define PUMP_SPEED_A_Pin GPIO_PIN_15
+#define PUMP_SPEED_A_GPIO_Port GPIOA
+#define PUMP_SPEED_C_Pin GPIO_PIN_6
+#define PUMP_SPEED_C_GPIO_Port GPIOB
+#define TJA1042_STB_Pin GPIO_PIN_7
+#define TJA1042_STB_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define CAN_COMMAND_ID 0x0200
+#define CAN_RESPONSE_ID 0x0201
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

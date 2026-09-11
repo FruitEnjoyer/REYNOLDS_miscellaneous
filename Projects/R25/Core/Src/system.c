@@ -10,7 +10,7 @@
 #include "spi.h"
 #include "tim.h"
 
-systemvars_t systemvars = { 0, };
+volatile systemvars_t systemvars = { 0, };
 
 AD7689_t extADC = { .spi = &hspi1, .nss_mode = NSS_SOFTWARE, .nss_port =
         AD7689_CS_GPIO_Port, .nss_pin = AD7689_CS_Pin };
@@ -35,7 +35,7 @@ __attribute__((always_inline)) inline void AD7689_Update()
     if (ad7689_ticks + ad7689_delta < HAL_GetTick())
     {
         AD7689_ReadCircular(&extADC);
-        HAL_ADC_Start_IT(&hadc1);
+        //HAL_ADC_Start_IT(&hadc1);
         ad7689_ticks += ad7689_delta;
     }
 }
@@ -84,6 +84,9 @@ void Ignition_SetDuty(uint16_t duty)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-    systemvars.mcu_temp = __HAL_ADC_CALC_TEMPERATURE(3300, HAL_ADC_GetValue(hadc),
-            ADC_RESOLUTION_12B);
+    if(hadc == &hadc1)
+    {
+        systemvars.adc_ready_flag = 1;
+    }
+    //systemvars.mcu_temp = __HAL_ADC_CALC_TEMPERATURE(3300, HAL_ADC_GetValue(hadc), ADC_RESOLUTION_12B);
 }

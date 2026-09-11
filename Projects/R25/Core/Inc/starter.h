@@ -14,15 +14,16 @@
 #define STARTER_MAGPAIRS              2
 #define STARTER_ALIGN_DELAY           1900     // [ms]
 #define STARTER_PRESTARTUP_DELAY      0     // [ms]
-#define STARTER_SPEEDUP_ACCELERATION  400  // [rpm / sec]
+#define STARTER_SPEEDUP_ACCELERATION  600  // [rpm / sec]
 #define STARTER_SPEEDUP_MINSPEED      60    // [rpm]
-#define STARTER_SPEEDUP_MAXSPEED      3600  // [rpm]
+#define STARTER_SPEEDUP_MAXSPEED      1800  // [rpm]
 #define STARTER_STARTUP_MINDUTY       170
+#define STARTER_CLOSELOOP_MINDUTY     0
 #define STARTER_ARR_INITTARGET         3000
 #define STARTER_SPEEDUP_INTER_NUM 42
 #define STARTER_TIM_FREQ 160000000
 #define STARTER_TIM_INIT_ARR 5999
-#define STARTER_IC_PSC    49
+#define STARTER_IC_PSC    160-1
 #define STARTER_PWM_ARR 1000
 #define STARTER_KP    (-0.025f)
 #define STARTER_KI    (-0.01f)
@@ -34,6 +35,7 @@ extern bldc_t starter;
 
 void Starter_Update();
 uint16_t DutyByTargetStarter(float target);
-float Starter_Speedup(float t);
+void Starter_SetDuty(int32_t duty);
+
 #endif
 #endif /* INC_STARTER_H_ */

@@ -24,6 +24,9 @@ void BLDC_SetPWM(bldc_t *bldc)
     switch(bldc->field_state)
     {
     case STATE_OFF:
+        bldc->pwmtim->Instance->CCR1 = 0;
+        bldc->pwmtim->Instance->CCR2 = 0;
+        bldc->pwmtim->Instance->CCR3 = 0;
         bldc->pwmtim->Instance->CCER &= ~(bldc->pwm_CCER_ch1 | bldc->pwm_CCER_ch2 | bldc->pwm_CCER_ch3);
         break;
     case STATE_1:

@@ -9,6 +9,8 @@
 extern struct Master_TM mtm;
 extern struct CONFIG config;
 extern struct TIM tim;
+extern float hall_speed;
+
 
 struct RS rs;
 struct RS_Service_Direct_Frame rs_service_direction;
@@ -33,6 +35,8 @@ struct CRC_Frame crc_frame;
 #define CONFIG_FRAME_SIZE						256
  */
 
+uint16_t var = 0;
+int16_t tg = 0;
 
 uint8_t Frame_Test()
 {
@@ -74,15 +78,16 @@ uint8_t Frame_Test()
                             rs.used_flag = 1;
                             rs.req_count++;
 
-                            rs_standart_tm.n1 = (uint16_t)(mtm.rotor_speed / 100);
-                            rs_standart_tm.tg = (int16_t)(mtm.t_real);
+                            rs_standart_tm.n1 = (uint16_t)(hall_speed / 10);
+                            rs_standart_tm.tg = (int16_t)(systemvars.thermocouple_temp);
+                            //pump.filtspeed;
                             rs_standart_tm.state = mtm.engine_state;
                             rs_standart_tm.flag = mtm.engine_flag;
                             rs_standart_tm.rud = mtm.trotle;
                             rs_standart_tm.bus_volt = (uint16_t)(mtm.bus_volt * 10);
-                            //rs_standart_tm.starter_pwm = starter.duty;  //STARTER_PWM;
-                            //rs_standart_tm.pump_pwm = pump.duty;  //PUMP_PWM;
-                            //rs_standart_tm.pump_fb = (uint16_t)pump.filtspeed;  //mtm.pump_speed;
+                            rs_standart_tm.starter_pwm = starter.duty;  //STARTER_PWM;
+                            rs_standart_tm.pump_pwm = pump.duty;  //PUMP_PWM;
+                            rs_standart_tm.pump_fb = (uint16_t)pump.intspeed;  //mtm.pump_speed;
                             rs_standart_tm.counter++;
 
                             HAL_UART_Transmit_DMA(rs485_puart,(uint8_t*)(&rs_standart_tm),
@@ -99,6 +104,7 @@ uint8_t Frame_Test()
                                 {
                                     // TODO: STARTER_PWM =
                                     rs_service_direction.starter_pwm = ((rs.rs485_rx_buff[4] << 8) + rs.rs485_rx_buff[5]);
+                                    Starter_SetDuty(rs_service_direction.starter_pwm);
                                 }
                                 if(rs_service_direction.pump_pwm != ((rs.rs485_rx_buff[6] << 8) + rs.rs485_rx_buff[7]))
                                 {
@@ -205,10 +211,10 @@ uint8_t Frame_Test()
                                 rs_service_direction.com3 = rs.rs485_rx_buff[17];
                             }
 
-                            rs_service_tm.n1_h = (uint8_t)((mtm.rotor_speed / 10) >> 8);
-                            rs_service_tm.n1_l = (uint8_t)((mtm.rotor_speed / 10));
+                            rs_service_tm.n1_h = (uint8_t)((uint16_t)(starter.intspeed / 10) >> 8);//(uint8_t)((mtm.rotor_speed / 10) >> 8);
+                            rs_service_tm.n1_l = (uint8_t)((uint16_t)(starter.intspeed / 10));//(uint8_t)((mtm.rotor_speed / 10));
 
-                            rs_service_tm.tg = (mtm.t_real);
+                            rs_service_tm.tg = (int16_t)(systemvars.thermocouple_temp);//(mtm.t_real);
 
 
                             rs_service_tm.state_h = (uint8_t)(mtm.engine_state >> 8);
@@ -229,8 +235,8 @@ uint8_t Frame_Test()
                             rs_service_tm.pump_pwm_h = (uint8_t)(starter.duty >> 8);  //(PUMP_PWM >> 8);
                             rs_service_tm.pump_pwm_l = (uint8_t)(starter.duty);  //(PUMP_PWM);
 
-                            rs_service_tm.pump_fb_h = (uint8_t)((uint16_t)(pump.filtspeed) >> 8);  //(mtm.pump_speed >> 8);
-                            rs_service_tm.pump_fb_l = (uint8_t)((uint16_t)pump.filtspeed);  //(mtm.pump_speed);
+                            rs_service_tm.pump_fb_h = (uint8_t)(pump.intspeed >> 8);  //(mtm.pump_speed >> 8);
+                            rs_service_tm.pump_fb_l = (uint8_t)(pump.intspeed);  //(mtm.pump_speed);
 
                             // TODO: rs_service_tm.pump_cur_h=(uint8_t)(((uint16_t)(exadc.ch_voltage[CH_PUMP_CUR]))>>8);
                             // TODO: rs_service_tm.pump_cur_l=(uint8_t)((uint16_t)(exadc.ch_voltage[CH_PUMP_CUR]));

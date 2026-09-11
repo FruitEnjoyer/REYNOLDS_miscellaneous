@@ -39,14 +39,13 @@ bldc_t starter = {
         .idle.disabletim_flag = 1,
         .idle.run_flag = 0,
         .startup.finalspeed = STARTER_SPEEDUP_MAXSPEED,
-        .closeloop.kp = STARTER_KP,
-        .closeloop.ki = STARTER_KI,
-        .closeloop.kd = STARTER_KD,
         .closeloop.target = STARTER_ARR_INITTARGET,
         .closeloop.cnt = 0,
-        .filtspeed = 3000,
-        .targetspeed = 5000
+        .targetspeed = 0,
+        .speed_cnt = 0
 };
+
+uint16_t psc = 500;
 
 uint16_t aligndelay = STARTER_ALIGN_DELAY;
 uint16_t prestartupdelay = STARTER_PRESTARTUP_DELAY;
@@ -54,13 +53,16 @@ uint16_t duty = STARTER_STARTUP_MINDUTY;
 
 void Starter_Update()
 {
-    const static uint32_t starter_delta = 1;
+    static const uint32_t starter_delta = 1;
 
     switch(starter.control_mode_t)
     {
     case IDLE:
         if(starter.idle.disabletim_flag)
         {
+            starter.field_state = STATE_OFF;
+            BLDC_SetPWM(&starter);
+
             HAL_TIM_IC_Stop_IT(&htim3, TIM_CHANNEL_1);
             HAL_TIM_IC_Stop_IT(&htim3, TIM_CHANNEL_2);
             HAL_TIM_IC_Stop_IT(&htim4, TIM_CHANNEL_1);
@@ -77,40 +79,31 @@ void Starter_Update()
             HAL_TIM_Base_Stop_IT(&htim7);
             starter.idle.disabletim_flag = 0;
         }
-        if(starter.idle.run_flag)
+        if(starter.idle.run_flag && starter.targetspeed > 0)
         {
+            starter.idle.disabletim_flag = 1;
+            starter.field_state = STATE_1;
+            starter.last_ccr = 7300;
+            starter.duty = starter.targetspeed;
+            starter.speed = 0;
+            starter.speed_cnt = 0;
+            starter.startup.cnt = 0;
+            htim7.Instance->PSC = 5999;
+            htim7.Instance->ARR = 5999;
+            htim7.Instance->CNT = 0;
             HAL_TIM_PWM_Start(starter.pwmtim, TIM_CHANNEL_1);
             HAL_TIMEx_PWMN_Start(starter.pwmtim, TIM_CHANNEL_1);
             HAL_TIM_PWM_Start(starter.pwmtim, TIM_CHANNEL_2);
             HAL_TIMEx_PWMN_Start(starter.pwmtim, TIM_CHANNEL_2);
             HAL_TIM_PWM_Start(starter.pwmtim, TIM_CHANNEL_3);
             HAL_TIMEx_PWMN_Start(starter.pwmtim, TIM_CHANNEL_3);
-            htim7.Instance->PSC = 5999;
-            htim7.Instance->ARR = 5999;
-            htim7.Instance->CNT = 0;
+            BLDC_SetPWM(&starter);
             starter.control_mode_t = ALIGN;
-            starter.idle.disabletim_flag = 1;
-            starter.field_state = STATE_1;
-            starter.last_ccr = 7300;
-            //starter.duty = STARTER_STARTUP_MINDUTY;
-            starter.filtspeed = 3000;
-            starter.targetspeed = 8000;
-            starter.closeloop.needrestart_flag = 0;
-            starter.speed = 0;
-            starter.startup.cnt = 0;
-            starter.closeloop.interr = 0;
-            starter.closeloop.preverr = 0;
-            starter.closeloop.prev2err = 0;
-            starter.closeloop.err = 0;
-            starter.closeloop.out = 0;
-            starter.closeloop.cnt = 0;
-            starter.usearr = 0;
-            starter.closeloop.arr = STARTER_ARR_INITTARGET;
-            starter.closeloop.target = STARTER_ARR_INITTARGET;
         }
         break;
+
     case ALIGN:
-        if(!starter.idle.run_flag)
+        if(!starter.idle.run_flag || starter.targetspeed == 0)
         {
             starter.control_mode_t = IDLE;
         }
@@ -147,25 +140,15 @@ void Starter_Update()
             starter.startup.tmax = (STARTER_SPEEDUP_MAXSPEED - STARTER_SPEEDUP_MINSPEED) / (float)STARTER_SPEEDUP_ACCELERATION;
             starter.startup.t = 0;
             STARTER_SPEEDUP_SET_PSC(starter.startup.speed);
-            starter.control_mode_t = PRESTARTUP;
+            starter.control_mode_t = STARTUP;
             HAL_TIM_Base_Start_IT(&htim7);
         }
         break;
     case PRESTARTUP:
-        if(!starter.idle.run_flag)
-        {
-            starter.control_mode_t = IDLE;
-        }
-        starter.align.cnt++;
-        if(starter.align.cnt > prestartupdelay / (float)starter_delta)
-        {
-            starter.align.cnt = 0;
-            starter.control_mode_t = STARTUP;
-        }
         break;
 
     case STARTUP:
-        if(!starter.idle.run_flag)
+        if(!starter.idle.run_flag || starter.targetspeed == 0)
         {
             starter.control_mode_t = IDLE;
         }
@@ -187,56 +170,65 @@ void Starter_Update()
             HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
             HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
             starter.control_mode_t = CLOSELOOP;
-            starter.duty = 150;
+            starter.duty = starter.targetspeed;
         }
         starter.startup.cnt += 1;
-        break;
-
-    case CLOSELOOP:
-        if((!starter.idle.run_flag) || starter.closeloop.needrestart_flag)
+#if 0
+        if(!starter.idle.run_flag || starter.targetspeed == 0)
         {
-            starter.closeloop.needrestart_flag = 0;
             starter.field_state = STATE_OFF;
             BLDC_SetPWM(&starter);
             starter.control_mode_t = IDLE;
         }
-
-        starter.speed = 60.f / ((STARTER_IC_PSC + 1) * (float)starter.last_ccr / STARTER_TIM_FREQ * 6. * STARTER_MAGPAIRS);
-        starter.filtspeed = 0.999 * starter.filtspeed + 0.001 * starter.speed;
+        starter.startup.cnt++;
+        if(starter.startup.cnt > 5000)
+        {
+            //__HAL_TIM_DISABLE_IT(&htim4, TIM_IT_UPDATE);
+            //starter.control_mode_t = CLOSELOOP;
+        }
+#endif
         break;
+
+    case CLOSELOOP:
+        if(!starter.idle.run_flag || starter.targetspeed == 0)
+        {
+            starter.control_mode_t = IDLE;
+            starter.field_state = STATE_OFF;
+            BLDC_SetPWM(&starter);
+        }
+
+
+
+        if(starter.targetspeed - starter.duty > 5)
+        {
+            starter.duty += 5;
+        }
+        else if(starter.targetspeed - starter.duty < -5)
+        {
+            if(starter.duty > STARTER_CLOSELOOP_MINDUTY + 5) starter.duty -= 5;
+            else starter.duty = STARTER_CLOSELOOP_MINDUTY;
+        }
+        else
+        {
+            starter.duty = starter.targetspeed;
+        }
+        break;
+
     default:
         starter.control_mode_t = IDLE;
         break;
     }
 }
 
-float Starter_Speedup(float t)
+void Starter_SetDuty(int32_t duty)
 {
-    {
-        float res, delta = 1.f / (STARTER_SPEEDUP_INTER_NUM - 1);
+    //if(duty > starter.targetspeed + 5) duty = starter.targetspeed + 5;
+    //else if(duty < starter.targetspeed - 5) duty = starter.targetspeed - 5;
 
-        if(t <= 0)
-        {
-            res = starter_speedup_inter[0];
-        } else if(t >= 1)
-        {
-            res = starter_speedup_inter[STARTER_SPEEDUP_INTER_NUM - 1];
-        }
+    if(duty > 800) duty = 800;
+    else if(duty < 0) duty = 0;
 
-        else
-        {
-            size_t i = 0;
-            while(t > i * delta)
-            {
-                i += 1;
-            }
-
-            // w = a * t + b
-            float a = (starter_speedup_inter[i] - starter_speedup_inter[i - 1]) / delta;
-            float b = (starter_speedup_inter[i - 1] * i * delta - starter_speedup_inter[i] * (i - 1) * delta) / delta;
-
-            res = a * t + b;
-        }
-        return res;
-    }
+    starter.targetspeed = duty;
 }
+
+
