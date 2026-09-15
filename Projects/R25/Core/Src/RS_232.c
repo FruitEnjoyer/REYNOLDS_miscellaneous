@@ -1,4 +1,5 @@
 #include "RS_232.h"
+#include "flash_modul.h"
 
 struct RS_232 rs_232;
 struct TM_RS_232_UZGA tm_rs_232_uzga;

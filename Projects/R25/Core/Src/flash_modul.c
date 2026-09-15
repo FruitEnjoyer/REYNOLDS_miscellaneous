@@ -1,7 +1,5 @@
 #include "flash_modul.h"
-#include "main.h"
 
-struct flash_t flash;
 
 void State_machine_flash()
 {

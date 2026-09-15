@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include "system.h"
 #include "../../../../Thermocouple/thermocouple.h"
+#include "flash_modul.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -139,7 +140,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern uint16_t var;
 extern int16_t tg;
 int16_t hall_ccr = 0;
 float hall_speed = 0;

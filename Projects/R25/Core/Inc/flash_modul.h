@@ -3,7 +3,6 @@
 
 
 
-#include "main.h"
 #include "usart.h"
 
 extern SPI_HandleTypeDef hspi1;
@@ -173,9 +172,8 @@ struct flash_t
     uint16_t timer;
     uint8_t fat_upload_flag;
     uint8_t tm_upload_flag;
-};
+} flash;
 
-extern struct flash_t flash;
 
 void State_machine_flash();
 void TM_updater(uint16_t time);

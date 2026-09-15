@@ -36,7 +36,6 @@ extern "C" {
 #include "TM.h"
 #include "RS_485.h"
 #include "RS_232.h"
-#include "flash_modul.h"
 // TODO: #include "mcp3008.h"
 #include "math.h"
 #include "CAN.h"
