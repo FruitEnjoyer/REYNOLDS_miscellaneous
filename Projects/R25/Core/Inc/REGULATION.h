@@ -95,9 +95,9 @@ void Overheating_Control_Operation(uint8_t time);
 //уставки по умолчанию
 #define PIN				1234
 
-#define ZERO_SETPOINT 800			   //сторожевой нулевой шим драйверов
+#define ZERO_SETPOINT 0			   //сторожевой нулевой шим драйверов
 #define BIDIR_ZERO_SETPOINT	1500       //сорожевой шим для насоса с двунаправленной прошивкой
-#define ZERO_POINT_STARTER_WORK 1000
+#define ZERO_POINT_STARTER_WORK 0
 
 #define ZERO_POINT_PUMP 	900
 #define ZERO_POINT_PUMP2 	1500

@@ -48,7 +48,8 @@ typedef struct bldc{
     TIM_HandleTypeDef* pwmtim;
     TIM_HandleTypeDef* ictim;
     volatile uint32_t last_ccr, fakelast_ccr;
-    float speed, speedbyarr, targetspeed;
+    float speed, speedbyarr;
+    int32_t targetspeed;
     uint32_t intspeed;
     volatile uint32_t duty;
     const uint32_t pwm_CCER_ch1, pwm_CCER_ch2, pwm_CCER_ch3;

@@ -37,5 +37,7 @@ void Starter_Update();
 uint16_t DutyByTargetStarter(float target);
 void Starter_SetDuty(int32_t duty);
 
+uint32_t Starter_GetPWM();
+
 #endif
 #endif /* INC_STARTER_H_ */

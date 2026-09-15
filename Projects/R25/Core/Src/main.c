@@ -54,6 +54,72 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+uint8_t rs_rx_flag=0;
+uint8_t rs_tx_flag=0;
+uint8_t ModbusRX[300];
+uint8_t ModbusTX[20]={0xFE,0xFE,0xC1,0,1,2,3,4,5,6,7,8,9,0x00,0xFF,0xFF};
+uint8_t i=0;
+//uint32_t test=0;
+uint8_t count_start_byte=0;//количество байт в заголовке пакета
+uint8_t count_stop_byte=0;//количество байт в конце пакета
+uint16_t receive_package_size=0;
+
+uint8_t xor=0;
+uint8_t arr_size_tx=0;
+uint8_t usb_rx_flag=0;
+
+
+//uint8_t advence_tm_buff[77]={0xFE,0xFE,ADDRESS};
+uint32_t time=0;
+
+uint8_t standard_response[STANDARD_ANSWER_SIZE+2]={0xFE,0xFE,0xA1,0x00,0x00,0xFF,0xFF};//расширенный размер на случай добавления экранирования
+//uint8_t tm_response[TM_ANSWER_SIZE+30]={0xFE,0xFE,ADDRESS,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xFF,0xFF};
+//  uint8_t tm_response_new[TM_ANSWER_SIZE]={0xFE,0xFE,ADDRESS,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0xFF,0xFF};
+uint8_t tm_update_flag=1;
+
+
+
+uint8_t screen_numb=0;//количество экранированных байт
+
+
+uint8_t rs_control_state=0;//для контроля приходов пакетов
+
+uint8_t rs_req_count=0;
+uint8_t rs_rud_count=0;
+uint8_t rs_bsu_count=0;
+
+uint16_t rs_old_bsu_count=0;
+uint16_t rs_new_bsu_count=0;
+
+uint16_t sau_to_bsu_count=0;
+
+
+
+uint8_t rs_start_stop_err_count=0;
+uint8_t rs_start_count=0;
+uint8_t rs_start1_count=0;
+uint8_t rs_start2_count=0;
+
+uint8_t rs_stop_count=0;
+uint8_t rs_stop1_count=0;
+uint8_t rs_stop2_count=0;
+
+uint8_t rs_flag_ok=0;
+uint8_t rs_state_count=0;
+
+uint8_t rs_com1_state=0;
+uint8_t rs_com2_state=0;
+uint8_t rs_com3_state=0;
+uint8_t rs_com4_state=0;
+
+
+uint8_t rs_com1_count=0;
+uint8_t rs_com2_count=0;
+uint8_t rs_com3_count=0;
+uint8_t rs_com4_count=0;
+uint8_t flag_combat_start=0;
+
 struct TIM tim;
 #pragma pack(0)
 struct ADC_1 adc_1;
@@ -132,6 +198,8 @@ int main(void)
     HAL_UART_Abort(rs485_puart);
     HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)(rs.rs485_rx_buff), sizeof(rs.rs485_rx_buff));
     __HAL_UART_ENABLE_IT(rs485_puart, UART_IT_IDLE);
+
+    p_config=&config;
 
     mtm.crc32 = HAL_CRC_Calculate(&hcrc, (uint32_t*)0x08000000, 131072);
     mtm.crc16 = (mtm.crc32 >> 16) ^ (mtm.crc32 & 0xFF);
@@ -215,6 +283,16 @@ int main(void)
         }
 
         State_machine_flash();
+
+        if(rs.config_complate_flag == 0)
+        {
+            mtm.engine_state = 9;
+        }
+
+        if(mtm.tc_complate_flag)
+        {
+            mtm.tc_complate_flag=0;
+        }
 
         //обработка rs-485------------------------------------------------------------------------------------------------
         if(rs.rs485_rx_flag)

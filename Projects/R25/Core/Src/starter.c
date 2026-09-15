@@ -190,7 +190,7 @@ void Starter_Update()
         break;
 
     case CLOSELOOP:
-        if(!starter.idle.run_flag || starter.targetspeed == 0)
+        if(!starter.idle.run_flag || starter.intspeed < 100)
         {
             starter.control_mode_t = IDLE;
             starter.field_state = STATE_OFF;
@@ -231,4 +231,8 @@ void Starter_SetDuty(int32_t duty)
     starter.targetspeed = duty;
 }
 
+uint32_t Starter_GetPWM()
+{
+    return starter.targetspeed;
+}
 
