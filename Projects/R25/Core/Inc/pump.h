@@ -16,7 +16,7 @@
 #define PUMP_PRESTARTUP_DELAY      0     // [ms]
 #define PUMP_SPEEDUP_ACCELERATION  2700  // [rpm / sec]
 #define PUMP_SPEEDUP_MINSPEED      60    // [rpm]
-#define PUMP_SPEEDUP_MAXSPEED      2200  // [rpm]
+#define PUMP_SPEEDUP_MAXSPEED      1000  // [rpm]
 #define PUMP_STARTUP_MINDUTY       150
 #define PUMP_CLOSELOOP_MINDUTY     0
 #define PUMP_ARR_INITTARGET         5800

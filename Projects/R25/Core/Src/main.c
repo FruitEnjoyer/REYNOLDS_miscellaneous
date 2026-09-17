@@ -403,7 +403,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     static uint8_t cnt_100hz = 0;
     static uint8_t nocap_cnt = 0;
-#if 0
+#if 1
     if(htim == &htim6)
     {
 
@@ -425,8 +425,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     else if(htim == &htim5) // Pump
     {
-        pump.field_state = (pump.field_state + 1) % 6;
-        BLDC_SetPWM(&pump);
+        if(starter.control_mode_t == CLOSELOOP)
+        {
+            pump.field_state = (pump.field_state + 1) % 6;
+            BLDC_SetPWM(&pump);
+        }
     }
 #if 0
     else if(htim == &htim4) // Starter
@@ -465,7 +468,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_3)
             {
-                //__HAL_TIM_SET_COUNTER(&htim5, 0);
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_4;
             }
@@ -473,6 +476,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_6)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_1;
             }
@@ -480,6 +484,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_1)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_2;
             }
@@ -487,6 +492,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_4)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_5;
             }
@@ -499,6 +505,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_2)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_3;
             }
@@ -506,6 +513,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_5)
             {
+                __HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 __HAL_TIM_SET_COUNTER(&htim2, 0);
                 pump.field_state = STATE_6;
