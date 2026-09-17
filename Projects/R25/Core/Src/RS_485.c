@@ -5,6 +5,8 @@
 #include "system.h"
 #include "tim.h"
 
+#define STARTER_PWM    starter.targetspeed
+
 extern struct Master_TM mtm;
 extern struct CONFIG config;
 extern struct TIM tim;
@@ -34,8 +36,6 @@ struct CRC_Frame crc_frame;
 #define CONFIG_FRAME_SIZE						256
  */
 
-uint16_t var = 0;
-int16_t tg = 0;
 
 uint8_t Frame_Test()
 {
@@ -77,16 +77,15 @@ uint8_t Frame_Test()
                             rs.used_flag = 1;
                             rs.req_count++;
 
-                            rs_standart_tm.n1 = (uint16_t)(hall_speed / 10);
-                            rs_standart_tm.tg = (int16_t)(systemvars.thermocouple_temp);
-                            //pump.filtspeed;
+                            rs_standart_tm.n1 = (uint16_t)(mtm.rotor_speed / 100);
+                            rs_standart_tm.tg = (int16_t)(mtm.t_real);
                             rs_standart_tm.state = mtm.engine_state;
                             rs_standart_tm.flag = mtm.engine_flag;
                             rs_standart_tm.rud = mtm.trotle;
                             rs_standart_tm.bus_volt = (uint16_t)(mtm.bus_volt * 10);
-                            rs_standart_tm.starter_pwm = starter.duty;  //STARTER_PWM;
-                            rs_standart_tm.pump_pwm = pump.duty;  //PUMP_PWM;
-                            rs_standart_tm.pump_fb = (uint16_t)pump.intspeed;  //mtm.pump_speed;
+                            rs_standart_tm.starter_pwm = STARTER_PWM;
+                            rs_standart_tm.pump_pwm = pump.targetspeed;  //PUMP_PWM;
+                            rs_standart_tm.pump_fb = mtm.pump_speed;
                             rs_standart_tm.counter++;
 
                             HAL_UART_Transmit_DMA(rs485_puart,(uint8_t*)(&rs_standart_tm),

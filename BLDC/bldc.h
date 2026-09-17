@@ -82,7 +82,7 @@ typedef struct bldc{
         float kp, ki, kd, err, preverr, prev2err, interr, differr, out;
         uint8_t needrestart_flag;
     } closeloop;
-    uint32_t speed_cnt;
+    uint32_t speed_cnt, speed_hall_cnt;
 } bldc_t;
 #pragma pack(1)
 

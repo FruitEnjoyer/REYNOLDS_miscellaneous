@@ -136,11 +136,12 @@ struct SET_CONFIG set_config;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 //static inline void BLDC_Update();
+void Get_Speed_Starter();
+uint32_t Hall_filter(uint32_t rotor_speed);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern int16_t tg;
 int16_t hall_ccr = 0;
 float hall_speed = 0;
 uint8_t no_capture = 1;
@@ -201,6 +202,12 @@ int main(void)
 
     p_config=&config;
 
+    //PIDController_Init(&pid_pump, 0, 800, -1, 1, 0, 800);
+    PIDController_Init(&pid_starter, 0, 1000, -1, 1, 0, 300);
+    //PIDController_Init(&pid_t_lim,0,1,0,10000,0,10000);
+    //PIDController_Init(&pid_t4_start,0,1000,-1,0,-1000,0);
+    //PIDController_Init(&pid_t4_hall_err,0,1000,-1,1,1000,2000);
+
     mtm.crc32 = HAL_CRC_Calculate(&hcrc, (uint32_t*)0x08000000, 131072);
     mtm.crc16 = (mtm.crc32 >> 16) ^ (mtm.crc32 & 0xFF);
 
@@ -215,8 +222,10 @@ int main(void)
     pump.idle.run_flag = 1;
     starter.targetspeed = 0;
     starter.idle.run_flag = 1;
-    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3);
-    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
+    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3); // Hall sensor
+    HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4); // Hall sensor
+    __HAL_TIM_ENABLE_IT(&htim4, TIM_IT_CC3);
+    __HAL_TIM_ENABLE_IT(&htim4, TIM_IT_CC4);
 
     // Клапаны
     HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
@@ -234,11 +243,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while(1)
     {
+        if(tim.flag_100Hz)
+        {
+            tim.flag_100Hz = 0;
+            Get_Speed_Starter();
+            mtm.pump_speed = pump.intspeed;
+        }
         if(tim.flag_1000Hz)
         {
             tim.flag_1000Hz = 0;
             Pump_Update();
-            //var = (uint16_t)pump.filtspeed;
             Starter_Update();
         }
         if(tim.flag_10Hz)
@@ -246,13 +260,16 @@ int main(void)
             tim.flag_10Hz = 0;
             LED1_GPIO_Port->BSRR = ((LED1_GPIO_Port->ODR & LED1_Pin) << 16u) | (~LED1_GPIO_Port->ODR & LED1_Pin);
 
-            starter.speed = 0.5 * starter.speed + 0.5 * starter.speed_cnt / STARTER_MAGPAIRS / 6 * 1000 / 100 * 60;
+            starter.speed = 0.5 * starter.speed + 0.5 * starter.speed_hall_cnt / STARTER_MAGPAIRS / 2 * 1000 / 100 * 60;
             starter.intspeed = (uint32_t)starter.speed;
             starter.speed_cnt = 0;
+            starter.speed_hall_cnt = 0;
 
             pump.speed = 0.5 * pump.speed + 0.5 * pump.speed_cnt / PUMP_MAGPAIRS / 6 * 1000 / 100 * 60;
             pump.intspeed = (uint32_t)pump.speed;
             pump.speed_cnt = 0;
+
+            Regulation();
 
             if(systemvars.adc_ready_flag)
             {
@@ -260,11 +277,17 @@ int main(void)
                 systemvars.vref = __HAL_ADC_CALC_VREFANALOG_VOLTAGE(systemvars.adc[0], ADC_RESOLUTION_12B);
                 systemvars.mcu_temp = __HAL_ADC_CALC_TEMPERATURE(systemvars.vref, systemvars.adc[1], ADC_RESOLUTION_12B);
                 systemvars.thermocouple_volts = __HAL_ADC_CALC_DATA_TO_VOLTAGE(systemvars.vref, systemvars.adc[2], ADC_RESOLUTION_12B);
-                TC_Volts2Temp((float)systemvars.thermocouple_volts / 52.f - 14.9551345962f, 30.f, &(systemvars.thermocouple_temp));
-                tg = (int16_t)systemvars.thermocouple_temp;
+                TC_Volts2Temp((float)systemvars.thermocouple_volts / 52.f - 14.9551345962f, 0.f, &(systemvars.thermocouple_temp));
+                mtm.t_real = systemvars.thermocouple_temp;
                 hall_speed = 60.f / ((STARTER_IC_PSC + 1) * (float)hall_ccr / STARTER_TIM_FREQ * 2. * STARTER_MAGPAIRS);
 
                 HAL_ADC_Start_DMA(&hadc1, (uint32_t*)systemvars.adc, 3);
+            }
+            if(mtm.adc1_complate_flag)
+            {
+                mtm.adc1_complate_flag = 0;
+                mtm.vref = systemvars.vref;
+                mtm.vref_k = 3.3 / 4096.00;
             }
 
             if(flash.tm_on_flag)
@@ -279,6 +302,15 @@ int main(void)
                 HAL_UART_Abort(rs485_puart);
                 HAL_UARTEx_ReceiveToIdle_DMA(rs485_puart, (uint8_t*)rs.rs485_rx_buff, sizeof(rs.rs485_rx_buff));
                  __HAL_UART_ENABLE_IT(rs485_puart, UART_IT_IDLE);
+            }
+            if(mtm.rotor_speed > 10000)
+            {
+                flash.operation_count_tim++;
+                if(flash.operation_count_tim > 100)
+                {
+                    flash.operation_count_tim = 0;
+                    flash.flag_reset_next_bit_oper_count = 1;
+                }
             }
         }
 
@@ -369,6 +401,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+    static uint8_t cnt_100hz = 0;
     static uint8_t nocap_cnt = 0;
 #if 0
     if(htim == &htim6)
@@ -385,7 +418,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
         if(starter.control_mode_t != CLOSELOOP)
         {
-            starter.speed_cnt += 1;
+            //starter.speed_cnt += 1;
             starter.field_state = (starter.field_state + 1) % 6;
             BLDC_SetPWM(&starter);
         }
@@ -409,6 +442,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if(htim == &htim16)
     {
         tim.flag_1000Hz = 1;
+        cnt_100hz++;
+        if(cnt_100hz > 9)
+        {
+            cnt_100hz = 0;
+            tim.flag_100Hz = 1;
+        }
     }
     else if(htim == &htim20)
     {
@@ -418,7 +457,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-    int32_t pump_new_ccr, starter_new_ccr;
+    //int32_t pump_new_ccr, starter_new_ccr;
 
     if(htim == &htim2 && pump.control_mode_t == CLOSELOOP)
     {
@@ -426,7 +465,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         {
             if(pump.field_state == STATE_3)
             {
-                __HAL_TIM_SET_COUNTER(&htim5, 0);
+                //__HAL_TIM_SET_COUNTER(&htim5, 0);
                 pump.speed_cnt += 1;
                 pump.field_state = STATE_4;
             }
@@ -453,7 +492,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             }
         }
         BLDC_SetPWM(&pump);
-    } else if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
+    }
+    if(htim == &htim5 && pump.control_mode_t == CLOSELOOP)
     {
         if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
         {
@@ -468,16 +508,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 pump.speed_cnt += 1;
                 __HAL_TIM_SET_COUNTER(&htim2, 0);
-                pump_new_ccr = ((__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_2)) +
-                        (__HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim2, TIM_CHANNEL_3)));
-                if(pump_new_ccr > 0)
-                {
-                    pump.last_ccr = 0.95 * pump.last_ccr + 0.05 * pump_new_ccr / 6;
-                }
-                else{
-                    pump.last_ccr = 0.95 * pump.last_ccr - 0.05 * pump_new_ccr / 6;
-                }
                 pump.field_state = STATE_6;
+
             }
         }
         BLDC_SetPWM(&pump);
@@ -491,6 +523,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.speed_cnt += 1;
                 starter.field_state = STATE_4;
+                BLDC_SetPWM(&starter);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
@@ -498,6 +531,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.speed_cnt += 1;
                 starter.field_state = STATE_1;
+                BLDC_SetPWM(&starter);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3)
         {
@@ -505,6 +539,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.speed_cnt += 1;
                 starter.field_state = STATE_2;
+                BLDC_SetPWM(&starter);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
         {
@@ -512,9 +547,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.speed_cnt += 1;
                 starter.field_state = STATE_5;
+                BLDC_SetPWM(&starter);
             }
         }
-        BLDC_SetPWM(&starter);
     }
     else if(htim == &htim4 && starter.control_mode_t == CLOSELOOP)
     {
@@ -525,6 +560,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
             {
                 starter.speed_cnt += 1;
                 starter.field_state = STATE_3;
+                BLDC_SetPWM(&starter);
             }
         } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
         {
@@ -534,25 +570,21 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 //__HAL_TIM_SET_COUNTER(&htim4, 0);
                 starter.speed_cnt += 1;
                 __HAL_TIM_SET_COUNTER(&htim3, 0);
-                starter_new_ccr = ((__HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_1) - __HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_2)) +
-                        (__HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim3, TIM_CHANNEL_3)));
-                if(starter_new_ccr > 0)
-                {
-                    starter.last_ccr = 0.95 * starter.last_ccr + 0.05 * starter_new_ccr / 6;
-                }
-                else{
-                    starter.last_ccr = 0.95 * starter.last_ccr - 0.05 * starter_new_ccr / 6;
-                }
                 starter.field_state = STATE_6;
+                BLDC_SetPWM(&starter);
             }
         }
-        else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
+    }
+    if(htim == &htim4) // Always detect, not only in run mode
+    {
+        if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3) // Hall sensor
         {
-            __HAL_TIM_SET_COUNTER(&htim4, 0);
-            hall_ccr = __HAL_TIM_GET_COMPARE(&htim4, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim4, TIM_CHANNEL_3);
-            //hall_speed = 60.f * 160000000 / 1600 / 6 / STARTER_MAGPAIRS / (__HAL_TIM_GET_COMPARE(&htim4, TIM_CHANNEL_4) - __HAL_TIM_GET_COMPARE(&htim4, TIM_CHANNEL_3));
+            starter.speed_hall_cnt += 1;
         }
-        BLDC_SetPWM(&starter);
+        else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) // Hall sensor
+        {
+            starter.speed_hall_cnt += 1;
+        }
     }
 }
 
@@ -595,6 +627,65 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 
+}
+
+uint32_t Cclc_flash_crc(uint32_t begin_address, uint32_t end_address)
+{
+    while (begin_address < end_address)
+    {
+          hcrc.Instance->DR = *((uint32_t*)begin_address);
+          begin_address += 4;
+    }
+    return hcrc.Instance->DR;
+}
+
+void Get_Speed_Starter()
+{
+    mtm.rotor_speed_old = mtm.rotor_speed;
+
+    mtm.rotor_speed = starter.intspeed; // С драйвера
+
+    if(mtm.rotor_speed > 100000)
+    {
+        mtm.rotor_speed = mtm.rotor_speed_old;
+    }
+    else if(mtm.rotor_speed > mtm.rotor_speed_old)
+    {
+        if(abs((int)(mtm.rotor_speed - mtm.rotor_speed_old)) > N1_MAX_DY)
+        {
+            if(mtm.n1_median_count < 50)
+            {
+                mtm.rotor_speed = mtm.rotor_speed_old;
+            }
+            mtm.n1_median_count++;
+        }
+        else
+        {
+            mtm.n1_median_count = 0;
+        }
+    }
+}
+
+uint32_t Hall_filter(uint32_t rotor_speed)
+{
+    static int n;
+    static float m[100];
+    static float y;
+    y = y + (rotor_speed - m[n]);
+    m[n] = rotor_speed;
+    n = (n + 1) % 100;
+    return y / 100;
+}
+
+float TC_Filter(float t)
+{
+    static int n;
+    static float m[100];
+    static float y;
+    y = y + (t - m[n]);
+    m[n] = t;
+    n = (n + 1) % 100;
+    return y / 100;
 }
 /* USER CODE END 4 */
 

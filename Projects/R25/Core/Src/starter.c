@@ -42,7 +42,8 @@ bldc_t starter = {
         .closeloop.target = STARTER_ARR_INITTARGET,
         .closeloop.cnt = 0,
         .targetspeed = 0,
-        .speed_cnt = 0
+        .speed_cnt = 0,
+        .speed_hall_cnt = 0
 };
 
 uint16_t psc = 500;
@@ -87,9 +88,10 @@ void Starter_Update()
             starter.duty = starter.targetspeed;
             starter.speed = 0;
             starter.speed_cnt = 0;
+            starter.speed_hall_cnt = 0;
             starter.startup.cnt = 0;
             htim7.Instance->PSC = 5999;
-            htim7.Instance->ARR = 5999;
+            htim7.Instance->ARR = STARTER_TIM_INIT_ARR;
             htim7.Instance->CNT = 0;
             HAL_TIM_PWM_Start(starter.pwmtim, TIM_CHANNEL_1);
             HAL_TIMEx_PWMN_Start(starter.pwmtim, TIM_CHANNEL_1);
@@ -98,6 +100,7 @@ void Starter_Update()
             HAL_TIM_PWM_Start(starter.pwmtim, TIM_CHANNEL_3);
             HAL_TIMEx_PWMN_Start(starter.pwmtim, TIM_CHANNEL_3);
             BLDC_SetPWM(&starter);
+            HAL_TIM_Base_Start_IT(&htim7);
             starter.control_mode_t = ALIGN;
         }
         break;
@@ -107,33 +110,8 @@ void Starter_Update()
         {
             starter.control_mode_t = IDLE;
         }
-        if(starter.align.cnt == 0)
-        {
-            starter.field_state = (starter.field_state + 1) % 6;
-            starter.duty = duty - 30;
-            BLDC_SetPWM(&starter);
-        }
-        if(starter.align.cnt == (uint16_t)(aligndelay / (float)starter_delta * 0.7))
-        {
-            starter.field_state = (starter.field_state + 1) % 6;
-            starter.duty = duty;
-            BLDC_SetPWM(&starter);
-        }
-        if(starter.align.cnt == (uint16_t)(aligndelay / (float)starter_delta * 0.9))
-        {
-            starter.field_state = (starter.field_state + 1) % 6;
-            starter.duty = duty;
-            BLDC_SetPWM(&starter);
-        }
-        if(starter.align.cnt == (uint16_t)(aligndelay / (float)starter_delta))
-        {
-            starter.field_state = (starter.field_state + 1) % 6;
-            starter.duty = duty;
-            BLDC_SetPWM(&starter);
-        }
-        BLDC_SetPWM(&starter);
         starter.align.cnt++;
-        if(starter.align.cnt > aligndelay / (float)starter_delta)
+        if(starter.align.cnt > 400)
         {
             starter.align.cnt = 0;
             starter.startup.speed = STARTER_SPEEDUP_MINSPEED;
@@ -190,20 +168,18 @@ void Starter_Update()
         break;
 
     case CLOSELOOP:
-        if(!starter.idle.run_flag || starter.intspeed < 100)
+        if(!starter.idle.run_flag || starter.intspeed < 1000)
         {
             starter.control_mode_t = IDLE;
             starter.field_state = STATE_OFF;
             BLDC_SetPWM(&starter);
         }
 
-
-
-        if(starter.targetspeed - starter.duty > 5)
+        if(starter.targetspeed > starter.duty + 5)
         {
             starter.duty += 5;
         }
-        else if(starter.targetspeed - starter.duty < -5)
+        else if(starter.targetspeed + 5 < starter.duty)
         {
             if(starter.duty > STARTER_CLOSELOOP_MINDUTY + 5) starter.duty -= 5;
             else starter.duty = STARTER_CLOSELOOP_MINDUTY;

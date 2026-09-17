@@ -1,5 +1,10 @@
 #include "RS_232.h"
 #include "flash_modul.h"
+#include "starter.h"
+#include "pump.h"
+
+#define PUMP_PWM       pump.targetspeed
+#define STARTER_PWM    starter.targetspeed
 
 struct RS_232 rs_232;
 struct TM_RS_232_UZGA tm_rs_232_uzga;

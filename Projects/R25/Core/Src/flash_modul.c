@@ -1,4 +1,9 @@
 #include "flash_modul.h"
+#include "starter.h"
+#include "pump.h"
+
+#define PUMP_PWM       pump.targetspeed
+#define STARTER_PWM    starter.targetspeed
 
 
 void State_machine_flash()

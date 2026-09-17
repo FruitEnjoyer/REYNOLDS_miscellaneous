@@ -1,6 +1,11 @@
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
+extern struct PIDController pid_starter;
+extern struct PIDController pid_pump;
+extern struct PIDController pid_t_lim;
+extern struct PIDController pid_t4_start;
+extern struct PIDController pid_t4_hall_err;
 
 
 #include "main.h"

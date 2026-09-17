@@ -7,6 +7,7 @@
 
 void TM_complate();
 
+#pragma pack(0)
 struct Master_TM
 {
 	uint8_t prs_state;

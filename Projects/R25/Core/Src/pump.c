@@ -44,6 +44,7 @@ void Pump_Update()
             HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_3);
             HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_4);
 
+            pump.duty = 0;
             HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
             HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
             HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
@@ -53,7 +54,7 @@ void Pump_Update()
             HAL_TIM_Base_Stop_IT(&htim6);
             pump.idle.disabletim_flag = 0;
         }
-        if(pump.idle.run_flag)
+        if(pump.idle.run_flag && pump.targetspeed > 0)
         {
             pump.idle.disabletim_flag = 1;
             pump.field_state = STATE_1;
@@ -61,6 +62,7 @@ void Pump_Update()
             pump.duty = pump.targetspeed;
             pump.speed = 0;
             pump.speed_cnt = 0;
+            pump.startup.cnt = 0;
             HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
             HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
             HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -75,7 +77,7 @@ void Pump_Update()
             HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
             HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);
             __HAL_TIM_ENABLE_IT(&htim5, TIM_IT_UPDATE);
-            pump.control_mode_t = CLOSELOOP;
+            pump.control_mode_t = STARTUP;
         }
         break;
 
@@ -85,25 +87,32 @@ void Pump_Update()
         break;
 
     case STARTUP:
+        if(!pump.idle.run_flag || pump.targetspeed == 0)
+        {
+            pump.field_state = STATE_OFF;
+            BLDC_SetPWM(&pump);
+            pump.control_mode_t = IDLE;
+        }
+        if(pump.startup.cnt > 20)
+        {
+            pump.control_mode_t = CLOSELOOP;
+        }
+        pump.startup.cnt += 1;
         break;
 
     case CLOSELOOP:
-        if(!pump.idle.run_flag)
+        if(!pump.idle.run_flag || pump.targetspeed == 0)
         {
             pump.field_state = STATE_OFF;
             BLDC_SetPWM(&pump);
             pump.control_mode_t = IDLE;
         }
 
-        //pump.speed = 60. * 1 / ((float)pump.last_ccr / PUMP_TIM_FREQ * 6. * PUMP_MAGPAIRS);
-        //pump.filtspeed = 0.99 * pump.filtspeed + 0.01 * pump.speed;
-        //pump.intspeed = (uint16_t)pump.filtspeed;
-
-        if(pump.targetspeed - pump.duty > 5)
+        if(pump.targetspeed > pump.duty + 5)
         {
             pump.duty += 5;
         }
-        else if(pump.targetspeed - pump.duty < -5)
+        else if(pump.targetspeed + 5 < pump.duty)
         {
             if(pump.duty > PUMP_CLOSELOOP_MINDUTY + 5) pump.duty -= 5;
             else pump.duty = PUMP_CLOSELOOP_MINDUTY;

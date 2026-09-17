@@ -4,7 +4,7 @@
 
 
 #include "main.h"
-
+#include "system.h"
 
 
 
@@ -96,13 +96,13 @@ void Overheating_Control_Operation(uint8_t time);
 #define PIN				1234
 
 #define ZERO_SETPOINT 0			   //сторожевой нулевой шим драйверов
-#define BIDIR_ZERO_SETPOINT	1500       //сорожевой шим для насоса с двунаправленной прошивкой
-#define ZERO_POINT_STARTER_WORK 0
+#define BIDIR_ZERO_SETPOINT	0       //сорожевой шим для насоса с двунаправленной прошивкой
+#define ZERO_POINT_STARTER_WORK 170
 
-#define ZERO_POINT_PUMP 	900
-#define ZERO_POINT_PUMP2 	1500
+#define ZERO_POINT_PUMP 	0
+#define ZERO_POINT_PUMP2 	0
 
-#define ZERO_POINT_PUMP_WORK 1000
+#define ZERO_POINT_PUMP_WORK 50
 #define DELTA_PUMP_PWM 10
 
 #define T_VENT         100      //пороговое значение температуры для вента
@@ -121,19 +121,19 @@ void Overheating_Control_Operation(uint8_t time);
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //каналы управления
 
-#define STARTER_PWM			TIM1->CCR1
-#define STARTER2_PWM		TIM1->CCR2
-#define PUMP_PWM			TIM3->CCR1
-#define PUMP2_PWM			TIM3->CCR2
+//#define STARTER_PWM			TIM1->CCR1
+//#define STARTER2_PWM		TIM1->CCR2
+//#define PUMP_PWM			TIM3->CCR1
+//#define PUMP2_PWM			TIM3->CCR2
 #define START_VALVE_PWM		TIM4->CCR1
 #define MAIN_VALVE_PWM		TIM4->CCR2
 
-#define HOT_PWM				TIM8->CCR1
+//#define HOT_PWM				TIM8->CCR1
 
 
 
-#define PLUG_ON // TODO: HAL_GPIO_WritePin(PRS_ON_GPIO_Port,PRS_ON_Pin,GPIO_PIN_SET);
-#define PLUG_OFF // TODO: HAL_GPIO_WritePin(PRS_ON_GPIO_Port,PRS_ON_Pin,GPIO_PIN_RESET);
+#define PLUG_ON   Ignition_SetDuty(165);// TODO: HAL_GPIO_WritePin(PRS_ON_GPIO_Port,PRS_ON_Pin,GPIO_PIN_SET);
+#define PLUG_OFF  Ignition_SetDuty(0);// TODO: HAL_GPIO_WritePin(PRS_ON_GPIO_Port,PRS_ON_Pin,GPIO_PIN_RESET);
 
 #define GEN_ON // TODO: HAL_GPIO_WritePin(DC_ON_GPIO_Port,DC_ON_Pin,GPIO_PIN_RESET);
 #define GEN_OFF // TODO: HAL_GPIO_WritePin(DC_ON_GPIO_Port,DC_ON_Pin,GPIO_PIN_SET);
@@ -141,11 +141,11 @@ void Overheating_Control_Operation(uint8_t time);
 #define ADG_ON // TODO: HAL_GPIO_WritePin(ADG_ON_GPIO_Port,ADG_ON_Pin,GPIO_PIN_SET);
 #define ADG_OFF // TODO: HAL_GPIO_WritePin(ADG_ON_GPIO_Port,ADG_ON_Pin,GPIO_PIN_RESET);
 
-#define START_VALVE_ON  START_VALVE_PWM = 1000;
-#define START_VALVE_OFF START_VALVE_PWM = 0;
+#define START_VALVE_ON  ValveStart_SetDuty(1000);//START_VALVE_PWM = 1000;
+#define START_VALVE_OFF ValveStart_SetDuty(0);//START_VALVE_PWM = 0;
 
-#define MAIN_VALVE_ON  	MAIN_VALVE_PWM = 1000;
-#define MAIN_VALVE_OFF  MAIN_VALVE_PWM=0;
+#define MAIN_VALVE_ON  	ValveMain_SetDuty(1000);//MAIN_VALVE_PWM = 1000;
+#define MAIN_VALVE_OFF  ValveMain_SetDuty(0);//MAIN_VALVE_PWM=0;
 
 
 

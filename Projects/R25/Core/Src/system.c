@@ -46,9 +46,9 @@ void ValveStart_SetDuty(uint16_t duty)
     {
         duty = 0;
     }
-    else if(duty > 860)
+    else if(duty > 920)
     {
-        duty = 860;
+        duty = 920;
     }
     htim15.Instance->CCR2 = duty;
 }
@@ -59,9 +59,9 @@ void ValveMain_SetDuty(uint16_t duty)
     {
         duty = 0;
     }
-    else if(duty > 860)
+    else if(duty > 920)
     {
-        duty = 860;
+        duty = 920;
     }
     htim15.Instance->CCR1 = duty;
 }
@@ -87,6 +87,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     if(hadc == &hadc1)
     {
         systemvars.adc_ready_flag = 1;
+        mtm.adc1_complate_flag = 1;
     }
     //systemvars.mcu_temp = __HAL_ADC_CALC_TEMPERATURE(3300, HAL_ADC_GetValue(hadc), ADC_RESOLUTION_12B);
 }

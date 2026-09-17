@@ -35,7 +35,6 @@ typedef struct
 #pragma pack(1)
 
 volatile extern systemvars_t systemvars;
-extern AD7689_t extADC;
 
 void HeartbeatLED_Update();
 void AD7689_Update();

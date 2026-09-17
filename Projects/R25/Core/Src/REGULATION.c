@@ -1,6 +1,9 @@
-
-
 #include "../Inc/REGULATION.h"
+#include "starter.h"
+#include "pump.h"
+
+#define PUMP_PWM       pump.targetspeed
+#define STARTER_PWM    starter.targetspeed
 
 extern struct Master_TM mtm;
 extern struct RS rs;
@@ -14,6 +17,8 @@ extern struct PIDController pid_t4_start;
 extern struct PIDController pid_t4_hall_err;
 
 extern struct CONFIG config;
+
+uint32_t starterpwm = 0;
 
 uint8_t Regulation_init()
 {
@@ -38,469 +43,134 @@ uint8_t Regulation()
 			switch(config.engine_type)
 			{
 				case(R40):
-				{
-
-				}
-				break;
+				        break;
 				case(R500):
-					{
-						if (mtm.update_state_flag)
-						{
-							mtm.update_state_flag=0;
-
-							STARTER_PWM = ZERO_SETPOINT;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-
-
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-							PIDController_Reset (&pid_t4_start);
-							PIDController_Reset (&pid_t4_hall_err);
-
-							PIDController_REInit(&pid_starter,config.starter_P,config.starter_I,config.starter_D);
-							PIDController_REInit(&pid_pump,config.main_P,config.main_I,config.main_D);
-							PIDController_REInit(&pid_t_lim,config.t_lim_P,config.t_lim_I,config.t_lim_D);
-							PIDController_REInit(&pid_t4_start,0.002,0.0002,0.00);
-							PIDController_REInit(&pid_t4_hall_err,0.004,0.0004,0.00);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-
-
-
-						}
-
-					}
-				break;
-				case(R500_PRS_KBM):
-					{
-						if (mtm.update_state_flag)
-						{
-							mtm.update_state_flag=0;
-
-							STARTER_PWM = ZERO_SETPOINT;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-
-
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-
-							PIDController_REInit(&pid_starter,config.starter_P,config.starter_I,config.starter_D);
-							PIDController_REInit(&pid_pump,config.main_P,config.main_I,config.main_D);
-							PIDController_REInit(&pid_t_lim,config.t_lim_P,config.t_lim_I,config.t_lim_D);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-
-
-
-						}
-					}
-				break;
-				case(R500_PRS_TRV):
-					{
-						if (mtm.update_state_flag)
-						{
-							mtm.update_state_flag=0;
-
-							STARTER_PWM = ZERO_SETPOINT;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-
-
-
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-							PIDController_Reset (&pid_t4_start);
-							PIDController_Reset (&pid_t4_hall_err);
-
-							PIDController_REInit(&pid_starter,config.starter_P,config.starter_I,config.starter_D);
-							PIDController_REInit(&pid_pump,config.main_P,config.main_I,config.main_D);
-							PIDController_REInit(&pid_t_lim,config.t_lim_P,config.t_lim_I,config.t_lim_D);
-							PIDController_REInit(&pid_t4_start,0.002,0.0002,0.00);
-							PIDController_REInit(&pid_t4_hall_err,0.004,0.0004,0.00);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-
-
-
-						}
-					}
-				break;
-				case(R1):
-					{
-						if (mtm.update_state_flag)
-						{
-							mtm.update_state_flag=0;
-
-							STARTER_PWM = ZERO_SETPOINT;
-							PUMP_PWM = ZERO_POINT_PUMP;
-							PUMP2_PWM=ZERO_POINT_PUMP2;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-
-
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-
-							PIDController_REInit(&pid_starter,config.starter_P,config.starter_I,config.starter_D);
-							PIDController_REInit(&pid_pump,config.main_P,config.main_I,config.main_D);
-							PIDController_REInit(&pid_t_lim,config.t_lim_P,config.t_lim_I,config.t_lim_D);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-
-
-
-						}
-
-					}
-				break;
-			}
-
-			if   ((mtm.t_real>config.t_vent) && (mtm.rotor_speed<5000)&&(rs.config_complate_flag))
-			{
-				if(mtm.work_count>10)
-				{
-					  mtm.engine_state=STAGE_VENT;
-					  mtm.update_state_flag=1;
-				}
-				else
-				{
-					mtm.work_count++;
-				}
-
-			}
-			else
-			{
-				mtm.work_count=0;
-			}
-
-
-		break;
+                    if (mtm.update_state_flag)
+                    {
+                        mtm.update_state_flag = 0;
+
+                        STARTER_PWM = ZERO_SETPOINT;
+                        PUMP_PWM = ZERO_POINT_PUMP;
+
+                        PLUG_OFF
+                        mtm.prs_state = 0;
+
+                        ADG_OFF
+                        mtm.adg_state = 0;
+
+                        mtm.hot_state = 0;
+
+                        START_VALVE_OFF
+                        MAIN_VALVE_OFF
+
+                        PIDController_Reset(&pid_starter);
+                        PIDController_Reset(&pid_pump);
+                        PIDController_Reset(&pid_t_lim);
+                        PIDController_Reset(&pid_t4_start);
+                        PIDController_Reset(&pid_t4_hall_err);
+
+                        PIDController_REInit(&pid_starter,config.starter_P,config.starter_I,config.starter_D);
+                        PIDController_REInit(&pid_pump,config.main_P,config.main_I,config.main_D);
+                        PIDController_REInit(&pid_t_lim,config.t_lim_P,config.t_lim_I,config.t_lim_D);
+                        PIDController_REInit(&pid_t4_start,0.002,0.0002,0.00);
+                        PIDController_REInit(&pid_t4_hall_err,0.004,0.0004,0.00);
+
+                        mtm.starter_restart_flag = 0;
+                        mtm.starter_move_count = 0;
+                        mtm.relevant_setpoint = 0;
+                        mtm.next_setpoint = 0;
+                    }
+                    break;
+                case(R500_PRS_KBM):
+                        break;
+                case(R500_PRS_TRV):
+                        break;
+                case(R1):
+                        break;
+            }
+
+            if((mtm.t_real > config.t_vent) && (mtm.rotor_speed < 5000) && (rs.config_complate_flag))
+            {
+                if(mtm.work_count > 10)
+                {
+                    mtm.engine_state = STAGE_VENT;
+                    mtm.update_state_flag = 1;
+                }
+                else
+                {
+                    mtm.work_count++;
+                }
+            }
+            else
+            {
+                mtm.work_count = 0;
+            }
+        break;
 //////////////////////////////////////////////////////////////////////////////////////////////
 		case(SLOWDOWN)://готовность к охлаждению
 			switch(config.engine_type)
 			{
 				case(R40):
-					{
-
-					}
 				break;
 				case(R500):
-					{
-						if (mtm.update_state_flag)
-						{
+                {
+                    if (mtm.update_state_flag)
+                    {
+                        mtm.update_state_flag = 0;
 
-							mtm.update_state_flag=0;
+                        STARTER_PWM = 0;
+                        PUMP_PWM = ZERO_POINT_PUMP;
 
+                        PLUG_OFF
+                        mtm.prs_state=0;
 
-
-							STARTER_PWM = 0;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
+                        ADG_OFF
+                        mtm.adg_state=0;
 
 
 
-							mtm.hot_state=0;
+                        mtm.hot_state=0;
 
-							mtm.work_count=0;
+                        mtm.work_count=0;
 
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
+                        START_VALVE_OFF
+                        MAIN_VALVE_OFF
 
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
+                        PIDController_Reset (&pid_starter);
+                        PIDController_Reset (&pid_pump);
+                        PIDController_Reset (&pid_t_lim);
 
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-							mtm.work_count=0;
+                        mtm.starter_restart_flag=0;
+                        mtm.starter_move_count=0;
+                        mtm.relevant_setpoint=0;
+                        mtm.next_setpoint=0;
+                        mtm.work_count=0;
 
-						}
+                    }
 
+                    if (mtm.work_count>10)
+                    {
+                        STARTER_PWM = ZERO_SETPOINT;
+                    }
+                    else
+                    {
+                        mtm.work_count++;
+                    }
+                    if(mtm.rotor_speed < 5000)
+                    {
+                      mtm.engine_state = INITIAL_STAGE;
+                      mtm.update_state_flag = 1;
 
-						if (mtm.work_count>10)
-						{
-							STARTER_PWM = ZERO_SETPOINT;
-						}
-						else
-						{
-							mtm.work_count++;
-						}
-
-						if   (mtm.rotor_speed<5000)
-						{
-						  mtm.engine_state=INITIAL_STAGE;
-						  mtm.update_state_flag=1;
-
-						  mtm.engine_flag=0;
-						}
-
-
-
-					}
+                      mtm.engine_flag=0;
+                    }
+                }
 				break;
 				case(R500_PRS_KBM):
-					{
-						if (mtm.update_state_flag)
-						{
-
-							mtm.update_state_flag=0;
-
-
-							mtm.engine_flag=0;
-
-							STARTER_PWM = 0;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							mtm.work_count=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-							mtm.work_count=0;
-
-						}
-
-
-						if (mtm.work_count>10)
-						{
-							STARTER_PWM = ZERO_SETPOINT;
-						}
-						else
-						{
-							mtm.work_count++;
-						}
-
-						if   (mtm.rotor_speed<5000)
-						{
-						  mtm.engine_state=INITIAL_STAGE;
-						  mtm.update_state_flag=1;
-
-						  mtm.engine_flag=0;
-						}
-
-					}
 				break;
 				case(R500_PRS_TRV):
-					{
-						if (mtm.update_state_flag)
-						{
-
-							mtm.update_state_flag=0;
-
-							mtm.engine_flag=0;
-
-							STARTER_PWM = 0;
-							PUMP_PWM = ZERO_POINT_PUMP;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							mtm.work_count=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-							mtm.work_count=0;
-
-						}
-
-
-						if (mtm.work_count>10)
-						{
-							STARTER_PWM = ZERO_SETPOINT;
-						}
-						else
-						{
-							mtm.work_count++;
-						}
-
-						if   (mtm.rotor_speed<5000)
-						{
-						  mtm.engine_state=INITIAL_STAGE;
-						  mtm.update_state_flag=1;
-
-						  mtm.engine_flag=0;
-						}
-
-					}
 				break;
 				case(R1):
-					{
-						if (mtm.update_state_flag)
-						{
-
-							mtm.update_state_flag=0;
-
-							mtm.engine_flag=0;
-
-							STARTER_PWM = 0;
-							PUMP_PWM = ZERO_POINT_PUMP;
-							PUMP2_PWM=ZERO_POINT_PUMP2;
-
-							PLUG_OFF
-							mtm.prs_state=0;
-
-							ADG_OFF
-							mtm.adg_state=0;
-
-
-
-							mtm.hot_state=0;
-
-							mtm.work_count=0;
-
-							START_VALVE_OFF
-							MAIN_VALVE_OFF
-
-							PIDController_Reset (&pid_starter);
-							PIDController_Reset (&pid_pump);
-							PIDController_Reset (&pid_t_lim);
-
-							mtm.starter_restart_flag=0;
-							mtm.starter_move_count=0;
-							mtm.relevant_setpoint=0;
-							mtm.next_setpoint=0;
-							mtm.work_count=0;
-
-						}
-
-
-						if (mtm.work_count>10)
-						{
-							STARTER_PWM = ZERO_SETPOINT;
-						}
-						else
-						{
-							mtm.work_count++;
-						}
-
-						if   (mtm.rotor_speed<5000)
-						{
-						  mtm.engine_state=INITIAL_STAGE;
-						  mtm.update_state_flag=1;
-
-						  mtm.engine_flag=0;
-						}
-
-					}
 				break;
-
-
-
-
 			}
 			Overheating_Control_Start(30);
 		break;
@@ -817,7 +487,7 @@ uint8_t Regulation()
 						mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
 																config.starter_rate,config.starter_rate);
 
-						STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint ,mtm.rotor_speed,0,1000);
+						STARTER_PWM=PIDController_Update(&pid_starter, mtm.relevant_setpoint, mtm.rotor_speed, 0, 1000);
 					}
 					else
 					{
@@ -845,102 +515,6 @@ uint8_t Regulation()
 				}
 				break;
 				case(R1):
-				{
-					if (mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.next_setpoint=6000;
-
-						mtm.relevant_setpoint=1200;
-
-						mtm.work_count=0;
-
-						mtm.threshold_count=0;
-
-						mtm.starter_move_count=0;
-
-						pid_starter.integrator=(((float)config.starter_min)/1000.00);
-
-
-						GEN_OFF
-						mtm.gen_state=0;
-
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-					}
-
-					if((mtm.work_count>50)&&(mtm.starter_move_count==0))//ход на перезапуск при нераскрутке ротора
-					{
-						mtm.work_count=0;
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-
-						mtm.starter_restart_flag=1;
-					}
-					mtm.work_count++;
-
-					if(mtm.rotor_speed>(config.n1_ignition*10))//переход в след. стэйт  счетчик =0,1 секунды
-					{
-						ADG_ON;
-						mtm.threshold_count++;//дописать процедуру сбора данных после активации защелки
-
-						mtm.actuator_r1_pump=Pump_Curve(mtm.rotor_speed);
-
-						PUMP_PWM=Get_next_setpoint((Pump_PWM_Correct (1250,mtm.bus_volt)),
-												  PUMP_PWM,config.pump1_rate/10,config.pump1_rate/10);
-
-						PUMP2_PWM=Get_next_setpoint((Pump_PWM_Correct_BIDIR (1200,mtm.bus_volt)),
-												  PUMP2_PWM,config.pump2_rate/10,config.pump2_rate/10);
-
-						if(mtm.threshold_count>1)
-						{
-							mtm.update_state_flag=1;
-							mtm.engine_state=START_2;
-						}
-					}
-
-					else
-					{
-						mtm.threshold_count=0;
-					}
-
-					if(mtm.engine_flag&C_CONTROL)//если отьебнула термопара
-					{
-						mtm.update_state_flag=1;
-						mtm.engine_state=SLOWDOWN;
-					}
-
-					if ((mtm.rotor_speed>2000)&&(mtm.starter_move_count<10))//условие перехода на пид
-					{
-						mtm.engine_flag=mtm.engine_flag&(~START_NO);
-						mtm.starter_move_count++;
-					}
-
-					if(mtm.starter_move_count>2)// если крутится переход на пид
-					{
-						mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
-															  config.starter_rate,config.starter_rate);
-
-						STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint ,mtm.rotor_speed,0,1000);
-					}
-					else
-					{
-						if(mtm.starter_restart_flag)//если перезапуск то плавное приращение уставки
-						{
-							if((STARTER_PWM+20)<=((config.starter_min)+1000))
-							{
-								STARTER_PWM= STARTER_PWM+20;
-							}
-							else
-							{
-								STARTER_PWM= ((config.starter_min)+1000);
-							}
-						}
-					  else//если первый заход то фиксированная уставка от конфига
-					  {
-						  STARTER_PWM=(config.starter_min)+1000;
-					  }
-					}
-				}
 				break;
 
 			}
@@ -1159,12 +733,7 @@ uint8_t Regulation()
 			switch(config.engine_type)
 			{
 				case(R40):
-					{
-
-					}
 				break;
-
-
 				case(R500):
 					{
 					 if (mtm.update_state_flag)
@@ -1426,99 +995,6 @@ uint8_t Regulation()
 
 
 				case(R1):
-					{
-
-					 if (mtm.update_state_flag)
-					  {
-						 mtm.update_state_flag=0;
-
-						 mtm.next_setpoint=25000;
-
-						 mtm.work_count=0;
-						 mtm.flameout_work_count=0;
-
-
-						 mtm.threshold_count=0;
-						PLUG_OFF;
-					  }
-
-
-
-					  if(mtm.rotor_speed>=18000)//переход в след. стэйт  счетчик =0,1 секунды
-					  {
-						  mtm.threshold_count++;
-						  if(mtm.threshold_count>1)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=START_4;
-						  }
-					  }
-
-					  else
-					  {
-						  mtm.threshold_count=0;
-					  }
-
-
-					  if(mtm.work_count>600)//рестарт по зависанию 60 сек
-					  {
-						mtm.update_state_flag=1;
-						mtm.engine_state=SLOWDOWN;
-						mtm.engine_flag=mtm.engine_flag|(FLAMEOUT);
-					  }
-					  mtm.work_count++;
-
-
-					  if(mtm.t_real<config.t_flameout)//незапуск по низкой температуре
-					  {
-						  mtm.flameout_work_count++;
-						  if(mtm.flameout_work_count>30)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=SLOWDOWN;
-							  mtm.engine_flag=mtm.engine_flag|(FLAMEOUT);
-						  }
-					  }
-
-					  else
-					  {
-						  mtm.flameout_work_count=0;
-					  }
-
-
-
-
-
-
-
-					  STARTER_PWM=Starter_PWM_Correct(mtm.rotor_speed,mtm.bus_volt);
-
-					  mtm.actuator_r1_pump=Pump_Curve(mtm.rotor_speed);
-
-					  PUMP_PWM=Get_next_setpoint((Pump_PWM_Correct (((Valve_Curve(mtm.actuator_r1_pump))+
-												  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-												  PUMP_PWM,config.pump1_rate/10,config.pump1_rate/10);
-
-					  PUMP2_PWM=Get_next_setpoint((Pump_PWM_Correct_BIDIR (((Start_Valve_Curve(mtm.actuator_r1_pump))+
-												  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-												  PUMP2_PWM,config.pump2_rate/10,config.pump2_rate/10);
-
-
-					  if( (mtm.engine_flag&CC_HOT))//перегрев
-						  {
-							   mtm.update_state_flag=1;
-							   mtm.engine_state=SLOWDOWN;
-						  }
-						if(mtm.engine_flag&C_CONTROL)//отказ термопары
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=SLOWDOWN;
-						  }
-
-
-
-
-					}
 				break;
 
 
@@ -1767,93 +1243,8 @@ uint8_t Regulation()
 
 					}
 				break;
-
-
 				case(R1):
-					{
-					if (mtm.update_state_flag)
-						{
-						mtm.update_state_flag=0;
-
-						mtm.flameout_work_count=0;
-						mtm.threshold_count=0;
-
-						}
-
-						if(mtm.rotor_speed>=(config.n1_starter_off*10))//переход в след. стэйт  счетчик =0,1 секунды
-						{
-						  mtm.threshold_count++;
-						  if(mtm.threshold_count>1)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=START_5;
-						  }
-						}
-
-						else
-						{
-						  mtm.threshold_count=0;
-						}
-
-
-						if(mtm.work_count>600)
-						{
-						mtm.update_state_flag=1;
-						mtm.engine_state=SLOWDOWN;
-						mtm.engine_flag=mtm.engine_state|(FLAMEOUT);
-						}
-						mtm.work_count++;
-
-
-						if(mtm.t_real<config.t_flameout)
-						{
-						  mtm.flameout_work_count++;
-						  if(mtm.flameout_work_count>30)
-						  {
-								mtm.update_state_flag=1;
-								mtm.engine_state=SLOWDOWN;
-								mtm.engine_flag=mtm.engine_state|(FLAMEOUT);
-						  }
-						}
-
-						else
-						{
-						  mtm.flameout_work_count=0;
-						}
-
-
-
-
-
-						STARTER_PWM=Starter_PWM_Correct(mtm.rotor_speed,mtm.bus_volt);
-
-
-						mtm.actuator_r1_pump=Pump_Curve(mtm.rotor_speed);
-
-						  PUMP_PWM=Get_next_setpoint((Pump_PWM_Correct (((Valve_Curve(mtm.actuator_r1_pump))+
-													  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-													  PUMP_PWM,config.pump1_rate/10,config.pump1_rate/10);
-
-						  PUMP2_PWM=Get_next_setpoint((Pump_PWM_Correct_BIDIR (((Start_Valve_Curve(mtm.actuator_r1_pump))+
-													  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-													  PUMP2_PWM,config.pump2_rate/10,config.pump2_rate/10);
-
-
-						if( (mtm.engine_flag&CC_HOT))//перегрев
-						{
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SLOWDOWN;
-						}
-
-						if(mtm.engine_flag&C_CONTROL)//отказ термопары
-						{
-							mtm.update_state_flag=1;
-							mtm.engine_state=SLOWDOWN;
-						}
-					}
 				break;
-
-
 			}
 			Overheating_Control_Start(30);
 		break;
@@ -2144,89 +1535,6 @@ uint8_t Regulation()
 
 
 				case(R1):
-					{
-					if (mtm.update_state_flag)
-						  {
-							mtm.update_state_flag=0;
-
-							STARTER_PWM=0;
-
-
-							mtm.prs_state=0;
-
-							mtm.flameout_work_count=0;
-							mtm.threshold_count=0;
-						  }
-
-					if(mtm.rotor_speed>=(config.n1_operation*10))//переход в след. стэйт  счетчик =0,1 секунды
-						  {
-							  mtm.threshold_count++;
-							  if(mtm.threshold_count>1)
-							  {
-								  mtm.update_state_flag=1;
-								  mtm.engine_state=OPERATION;
-							  }
-						  }
-
-					 else
-						  {
-							  mtm.threshold_count=0;
-						  }
-
-
-					 if(mtm.work_count>600)
-						  {
-							mtm.update_state_flag=1;
-							mtm.engine_state=SLOWDOWN;
-							mtm.engine_flag=mtm.engine_flag|(FLAMEOUT);
-						  }
-					  mtm.work_count++;
-
-
-					  if(mtm.t_real<config.t_flameout)
-					  {
-						  mtm.flameout_work_count++;
-						  if(mtm.flameout_work_count>30)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=SLOWDOWN;
-							  mtm.engine_flag=mtm.engine_flag|(FLAMEOUT);
-						  }
-					  }
-
-					  else
-					  {
-						  mtm.flameout_work_count=0;
-					  }
-
-
-						mtm.actuator_r1_pump=Pump_Curve(mtm.rotor_speed);
-
-						  PUMP_PWM=Get_next_setpoint((Pump_PWM_Correct (((Valve_Curve(mtm.actuator_r1_pump))+
-													  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-													  PUMP_PWM,config.pump1_rate/10,config.pump1_rate/10);
-
-						  PUMP2_PWM=Get_next_setpoint((Pump_PWM_Correct_BIDIR (((Start_Valve_Curve(mtm.actuator_r1_pump))+
-													  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-													  PUMP2_PWM,config.pump2_rate/10,config.pump2_rate/10);
-
-
-
-
-
-						if( (mtm.engine_flag&CC_HOT))//перегрев
-						{
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SLOWDOWN;
-						}
-
-						if(mtm.engine_flag&C_CONTROL)//отказ термопары
-						{
-							mtm.update_state_flag=1;
-							mtm.engine_state=SLOWDOWN;
-						}
-
-					}
 				break;
 
 
@@ -2531,95 +1839,6 @@ uint8_t Regulation()
 				}
 				break;
 				case(R1):
-				{
-					if (mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.rud=config.n1_min*10;//////////////////////
-
-
-						mtm.flameout_work_count=0;
-
-						mtm.relevant_setpoint=config.n1_min*10;
-
-						mtm.hot_state=0;
-
-						pid_pump.integrator=((float)mtm.actuator_r1_pump)/100;
-
-						mtm.work_count=0;
-
-						mtm.hall_err_flag=0;
-					}
-
-					if (mtm.hall_err_flag)
-					{
-						mtm.update_state_flag=1;
-						mtm.engine_state=SLOWDOWN;
-					}
-					else
-					{
-						if(mtm.rotor_speed>BEGIN_T_LIM_PID)
-						{
-							mtm.t_lim_pid_val=PIDController_Update(&pid_t_lim,mtm.t_real, config.t_PID_lim,0,0);
-						}
-						else
-						{
-							mtm.t_lim_pid_val=0;
-							PIDController_Reset(&pid_t_lim);
-						}
-
-						mtm.relevant_setpoint=Get_next_setpoint(mtm.rud,mtm.relevant_setpoint,
-														(config.rate_up*10),(config.rate_down*10));
-
-						mtm.actuator_r1_pump=((PIDController_Update(&pid_pump, (mtm.relevant_setpoint-mtm.t_lim_pid_val),
-												mtm.rotor_speed,0,ZERO_POINT_PUMP_WORK))-1000)/10;
-
-						PUMP_PWM=Get_next_setpoint((Pump_PWM_Correct (((Valve_Curve(mtm.actuator_r1_pump))+
-												  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-												  PUMP_PWM,config.pump1_rate/10,config.pump1_rate/10);
-
-						PUMP2_PWM=Get_next_setpoint((Pump_PWM_Correct_BIDIR (((Start_Valve_Curve(mtm.actuator_r1_pump))+
-												  ZERO_POINT_PUMP_WORK),mtm.bus_volt)),
-												  PUMP2_PWM,config.pump2_rate/10,config.pump2_rate/10);
-
-
-						if(mtm.rotor_speed>config.n1_overspeed*10)//превышение максимальных оборотов
-						{
-						   mtm.update_state_flag=1;
-						   mtm.engine_state=SLOWDOWN;
-						   mtm.engine_flag=mtm.engine_flag|(N1_HIGH);
-						}
-
-
-						if((mtm.t_real<config.t_flameout)||(mtm.rotor_speed<25000))//погасла камера
-						{
-							mtm.flameout_work_count++;
-							if(mtm.flameout_work_count>30)
-							{
-								mtm.update_state_flag=1;
-								mtm.engine_state=SLOWDOWN;
-								mtm.engine_flag=mtm.engine_flag|(FLAMEOUT);
-							}
-						}
-						else
-						{
-							mtm.flameout_work_count=0;
-						}
-
-						if(mtm.engine_flag&(TG_HIGH))
-						{
-							 mtm.update_state_flag=1;
-							 mtm.engine_state=SLOWDOWN;
-						}
-
-						if(mtm.engine_flag&C_CONTROL)
-						{
-							mtm.update_state_flag=1;
-							mtm.engine_state=SLOWDOWN;
-						}
-					}
-				}
 			break;
 			}
 			Overheating_Control_Operation(30);
@@ -4421,335 +3640,104 @@ uint8_t Regulation()
 		case(SHECK_VAL):
 			switch(config.engine_type)
 			{
-				case(R40):
-					{
-
-					}
-				break;
-
-
-				case(R500):
-					{
-					  if (mtm.update_state_flag)
-					  {
-
-						  mtm.update_state_flag=0;
-
-
-						  START_VALVE_ON ;
-
-						  mtm.work_count=0;
-
-						  mtm.valve1_curve_control_flag=0;//set when ADC is complited
-						  mtm.valve2_curve_control_flag=0;
-
-
-					  }
-
-
-					  if(mtm.work_count>5)
-					  {
-						  MAIN_VALVE_ON
-					  }
-
-
-					  if(mtm.work_count>10)
-					  {
-						  MAIN_VALVE_OFF
-						  START_VALVE_OFF
-
-
-						  mtm.engine_flag=mtm.engine_flag|(VALVE_NO);
-						  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_PUMP;
-
-
-					  }
-
-					  else if(((mtm.valve1_cur>0.3)&&(mtm.valve2_cur>0.3))&&(mtm.work_count>5))
-					  {
-						  MAIN_VALVE_OFF ;
-						  START_VALVE_OFF ;
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_PUMP;
-					  }
-
-					  mtm.work_count++;
-
-					}
-				break;
-
-
-				case(R500_PRS_KBM):
-					{
-					  if (mtm.update_state_flag)
-					  {
-
-						  mtm.update_state_flag=0;
-
-
-						  START_VALVE_ON ;
-
-						  mtm.work_count=0;
-
-						  mtm.valve1_curve_control_flag=0;//set when ADC is complited
-						  mtm.valve2_curve_control_flag=0;
-
-
-					  }
-					  if(mtm.work_count>5)
-					  {
-						  MAIN_VALVE_ON
-					  }
-
-
-					  if(mtm.work_count>10)
-					  {
-						  MAIN_VALVE_OFF
-						  START_VALVE_OFF
-
-
-						  mtm.engine_flag=mtm.engine_flag|(VALVE_NO);
-						  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_PUMP;
-
-
-					  }
-
-					  else if((mtm.valve1_cur>0.3)&&(mtm.valve2_cur>0.3))
-					  {
-						  MAIN_VALVE_OFF ;
-						  START_VALVE_OFF ;
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_PUMP;
-					  }
-
-					  mtm.work_count++;
-					}
-				break;
-
-				case(R500_PRS_TRV):
-					{
-						  if (mtm.update_state_flag)
-						  {
-
-							  mtm.update_state_flag=0;
-
-
-							  START_VALVE_ON ;
-
-							  mtm.work_count=0;
-
-							  mtm.valve1_curve_control_flag=0;//set when ADC is complited
-							  mtm.valve2_curve_control_flag=0;
-
-
-						  }
-						  if(mtm.work_count>5)
-						  {
-							  MAIN_VALVE_ON
-						  }
-
-
-						  if(mtm.work_count>10)
-						  {
-							  MAIN_VALVE_OFF
-							  START_VALVE_OFF
-
-
-							  mtm.engine_flag=mtm.engine_flag|(VALVE_NO);
-							  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=SHECK_PUMP;
-
-
-						  }
-
-						  else if((mtm.valve1_cur>0.3)&&(mtm.valve2_cur>0.3))
-						  {
-							  MAIN_VALVE_OFF ;
-							  START_VALVE_OFF ;
-
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=SHECK_PUMP;
-						  }
-
-						  mtm.work_count++;
-
-					}
-				break;
-
-
-				case(R1):
-					{
-
-					}
-				break;
-
-
+            case(R40):
+                break;
+            case(R500):
+            {
+                if(mtm.update_state_flag)
+                {
+                    mtm.update_state_flag = 0;
+                    START_VALVE_ON;
+
+                    mtm.work_count = 0;
+
+                    mtm.valve1_curve_control_flag = 0;//set when ADC is complited
+                    mtm.valve2_curve_control_flag = 0;
+                }
+
+                if(mtm.work_count > 5)
+                {
+                    MAIN_VALVE_ON;
+                }
+#if 0
+                if(mtm.work_count > 10)
+                {
+                    MAIN_VALVE_OFF;
+                    START_VALVE_OFF;
+
+                    mtm.engine_flag = mtm.engine_flag | (VALVE_NO);
+                    mtm.engine_flag = mtm.engine_flag | (A_CONTROL);
+
+                    mtm.update_state_flag = 1;
+                    mtm.engine_state = SHECK_PUMP;
+                }
+                else
+#endif
+                if(mtm.work_count > 10)//5 && (mtm.valve1_cur > 0.3) && (mtm.valve2_cur > 0.3))
+                {
+                    MAIN_VALVE_OFF;
+                    START_VALVE_OFF;
+
+                    mtm.update_state_flag = 1;
+                    mtm.engine_state = SHECK_PUMP;
+                }
+
+                mtm.work_count++;
+            }
+                break;
+                case(R500_PRS_KBM):
+                break;
+                case(R500_PRS_TRV):
+                break;
+                case(R1):
+                break;
 			}
-
-
-
-
-
-
 		break;
 //////////////////////////////////////////////////////////////////////////////////////////////
-		case(SHECK_PUMP):
-			switch(config.engine_type)
-			{
-				case(R40):
-					{
+        case(SHECK_PUMP):
+            switch(config.engine_type)
+            {
+                case(R40):
+                break;
+                case(R500):
+                {
+                    if (mtm.update_state_flag)
+                    {
+                        mtm.update_state_flag = 0;
 
-					}
-				break;
+                        mtm.work_count = 0;
 
+                        PUMP_PWM = ZERO_POINT_PUMP + config.pump_test_pwm;
+                    }
 
-				case(R500):
-					{
-					  if (mtm.update_state_flag)
-					  {
+                    if(mtm.work_count > 20)
+                    {
+                        PUMP_PWM = ZERO_POINT_PUMP;
 
-						  mtm.update_state_flag=0;
+                        mtm.engine_flag = mtm.engine_flag | (PUMP_NO);
+                        mtm.engine_flag = mtm.engine_flag | (A_CONTROL);
 
-						  mtm.work_count=0;
+                        mtm.update_state_flag = 1;
+                        mtm.engine_state = SHECK_IGN;
+                    }
 
-						  PUMP_PWM=ZERO_POINT_PUMP+config.pump_test_pwm;
+                    else if((mtm.pump_speed > 0) && (mtm.work_count > 5))
+                    {
+                        PUMP_PWM = ZERO_POINT_PUMP;
 
-					  }
+                        mtm.update_state_flag = 1;
+                        mtm.engine_state = SHECK_IGN;
+                    }
 
-
-					  if(mtm.work_count>20)
-					  {
-
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-						  mtm.engine_flag=mtm.engine_flag|(PUMP_NO);
-						  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-
-
-					  }
-
-					  else if((mtm.pump_speed>0)&&(mtm.work_count>5))
-					  {
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-					  }
-
-					  mtm.work_count++;
-
-					}
-				break;
-
-
-				case(R500_PRS_KBM):
-					{
-					  if (mtm.update_state_flag)
-					  {
-
-						  mtm.update_state_flag=0;
-
-
-						  mtm.work_count=0;
-
-						  PUMP_PWM=ZERO_POINT_PUMP+config.pump_test_pwm;
-
-					  }
-
-
-					  if(mtm.work_count>20)
-					  {
-
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-						  mtm.engine_flag=mtm.engine_flag|(PUMP_NO);
-						  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-
-
-					  }
-
-					  else if(mtm.pump_speed>0)
-					  {
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-					  }
-
-					  mtm.work_count++;
-
-					}
-				break;
-
-				case(R500_PRS_TRV):
-					{
-					  if (mtm.update_state_flag)
-					  {
-
-						  mtm.update_state_flag=0;
-
-
-						  mtm.work_count=0;
-
-						  PUMP_PWM=ZERO_POINT_PUMP+config.pump_test_pwm;
-
-					  }
-
-
-					  if(mtm.work_count>20)
-					  {
-
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-						  mtm.engine_flag=mtm.engine_flag|(PUMP_NO);
-						  mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-
-
-					  }
-
-					  else if(mtm.pump_speed>0)
-					  {
-						  PUMP_PWM=ZERO_POINT_PUMP;
-
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_IGN;
-					  }
-
-					  mtm.work_count++;
-
-					}
-				break;
-
-
-				case(R1):
-					{
-
-					}
-				break;
-
-
+                    mtm.work_count++;
+                }
+                break;
+                case(R500_PRS_KBM):
+                break;
+                case(R500_PRS_TRV):
+                break;
+                case(R1):
+                break;
 			}
 		  break;
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -4757,31 +3745,21 @@ uint8_t Regulation()
 			switch(config.engine_type)
 			{
 				case(R40):
-					{
-
-					}
 				break;
-
-
 				case(R500):
 					{
 					  if (mtm.update_state_flag)
 					  {
-
 							mtm.update_state_flag=0;
-
 
 							mtm.work_count=0;
 
 							PLUG_ON
-							mtm.prs_state=1;
-
+							mtm.prs_state = 1;
 					  }
 
-
-					  if(mtm.work_count>30)
+					  if(mtm.work_count > 30)
 					  {
-
 						  PLUG_OFF
 						  mtm.prs_state=0;
 
@@ -4790,190 +3768,78 @@ uint8_t Regulation()
 
 						  mtm.update_state_flag=1;
 						  mtm.engine_state=SHECK_STARTER;
-
-
 					  }
-
-					  else //if(mtm.plug_current>0)
+					  else if(mtm.work_count > 20)//if(mtm.plug_current>0)
 					  {
 						  PLUG_OFF
-						  mtm.prs_state=0;
+						  mtm.prs_state = 0;
 
-
-						  mtm.update_state_flag=1;
-						  mtm.engine_state=SHECK_STARTER;
+						  mtm.update_state_flag = 1;
+						  mtm.engine_state = SHECK_STARTER;
 					  }
 
 					  mtm.work_count++;
-
 					}
 				break;
-
-
 				case(R500_PRS_KBM):
-					{
-						mtm.update_state_flag=1;
-						 mtm.engine_state=SHECK_STARTER;
-					}
 				break;
-
 				case(R500_PRS_TRV):
-					{
-
-						mtm.update_state_flag=1;
-						mtm.engine_state=SHECK_STARTER;
-					}
 				break;
-
-
 				case(R1):
-					{
-
-					}
 				break;
-
-
 			}
-
-
-
 		break;
 //////////////////////////////////////////////////////////////////////////////////////////////
 		case(SHECK_STARTER):
 			switch(config.engine_type)
 			{
 				case(R40):
-				{
-
-				}
 				break;
 				case(R500):
 				{
 					if (mtm.update_state_flag)
 					{
-						mtm.update_state_flag=0;
+						mtm.update_state_flag = 0;
 
-						mtm.work_count=0;
+						mtm.work_count = 0;
 
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
+						STARTER_PWM = ZERO_POINT_STARTER_WORK;
 					}
 
-					if((STARTER_PWM+20)<((config.starter_min)+1000))
+					if((STARTER_PWM + 20) < (config.starter_min))
 					{
-						STARTER_PWM= STARTER_PWM+20;
+						STARTER_PWM = STARTER_PWM + 20;
 					}
-					else if(STARTER_PWM<((config.starter_min)+1000))
+					else if(STARTER_PWM < (config.starter_min))
 					{
-						STARTER_PWM= ((config.starter_min)+1000);
+						STARTER_PWM = (config.starter_min);
 					}
 
-					if(mtm.work_count>100)
+					if(mtm.work_count > 100)
 					{
 						STARTER_PWM = ZERO_SETPOINT;
 
-						mtm.engine_flag=mtm.engine_flag|(START_NO);
-						mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
+						mtm.engine_flag = mtm.engine_flag | (START_NO);
+						mtm.engine_flag = mtm.engine_flag | (A_CONTROL);
 
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
+						mtm.update_state_flag = 1;
+						mtm.engine_state = INITIAL_STAGE;
 					}
-					else if(mtm.rotor_speed>500)
+					else if(mtm.rotor_speed > 1800)
 					{
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
+						mtm.update_state_flag = 1;
+						mtm.engine_state = INITIAL_STAGE;
 					}
-
 					mtm.work_count++;
-
 				}
 				break;
 				case(R500_PRS_KBM):
-				{
-					if (mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.work_count=0;
-
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-					}
-
-					if((STARTER_PWM+20)<((config.starter_min)+1000))
-					{
-						STARTER_PWM= STARTER_PWM+20;
-					}
-					else if(STARTER_PWM<((config.starter_min)+1000))
-					{
-						STARTER_PWM= ((config.starter_min)+1000);
-					}
-
-					if(mtm.work_count>100)
-					{
-						STARTER_PWM = ZERO_SETPOINT;
-
-						mtm.engine_flag=mtm.engine_flag|(START_NO);
-						mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
-					}
-					else if(mtm.rotor_speed>500)
-					{
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
-					}
-
-					mtm.work_count++;
-
-				}
 				break;
 				case(R500_PRS_TRV):
-				{
-					if (mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.work_count=0;
-
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-					}
-
-					if((STARTER_PWM+20)<((config.starter_min)+1000))
-					{
-						STARTER_PWM= STARTER_PWM+20;
-					}
-					else if(STARTER_PWM<((config.starter_min)+1000))
-					{
-						STARTER_PWM= ((config.starter_min)+1000);
-					}
-
-					if(mtm.work_count>100)
-					{
-						STARTER_PWM = ZERO_SETPOINT;
-
-						mtm.engine_flag=mtm.engine_flag|(START_NO);
-						mtm.engine_flag=mtm.engine_flag|(A_CONTROL);
-
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
-					}
-					else if(mtm.rotor_speed>500)
-					{
-						mtm.update_state_flag=1;
-						mtm.engine_state=INITIAL_STAGE;
-					}
-
-					mtm.work_count++;
-
-				}
 				break;
 				case(R1):
-				{
-
-				}
 				break;
 			}
-
 		break;
 //////////////////////////////////////////////////////////////////////////////////////////////
 		case(PUMP_ST):
@@ -5096,265 +3962,137 @@ uint8_t Regulation()
 			switch(config.engine_type)
 			{
 				case(R40):
-					{
-
-					}
 				break;
-
-
 				case(R500):
-					{
-					  if (mtm.update_state_flag)
-						  {
+                {
+                if (mtm.update_state_flag)
+                {
+                    mtm.update_state_flag = 0;
 
-							  mtm.update_state_flag=0;
+                    mtm.work_count = 0;
+                    mtm.threshold_count = 0;
 
+                    PUMP_PWM = ZERO_POINT_PUMP + config.pump_test_pwm;//Pump_PWM_Correct(1450,mtm.bus_volt);
+                    START_VALVE_ON;
+                    //MAIN_VALVE_ON;
 
-							  mtm.work_count=0;
-							  mtm.threshold_count=0;
+                    if(config.u_pump_test_crit)
+                    {
+                    mtm.u_pump_test_crit=config.u_pump_test_crit;
+                    }
 
-							  PUMP_PWM=Pump_PWM_Correct(1450,mtm.bus_volt);//ZERO_POINT_PUMP+config.pump_test_pwm;
-							  START_VALVE_ON ;
-							  //MAIN_VALVE_ON;
-
-							  if(config.u_pump_test_crit)
-							  {
-								  mtm.u_pump_test_crit=config.u_pump_test_crit;
-							  }
-
-							  else
-							  {
-								  mtm.u_pump_test_crit=5000;
-							  }
-						  }
+                    else
+                    {
+                    mtm.u_pump_test_crit=5000;
+                    }
+                    }
 
 
-						  if(mtm.work_count>40)
-						  {
+                    if(mtm.work_count>40)
+                    {
+                    mtm.update_state_flag=1;
+                    mtm.engine_state=INITIAL_STAGE;
+                    START_VALVE_OFF;
+                    }
 
 
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							  //START_VALVE_OFF ;
-
-						  }
+                    mtm.work_count++;
 
 
-						  mtm.work_count++;
+                    if((mtm.pump_speed<mtm.u_pump_test_crit)&&(mtm.pump_speed>2500))
+                    {
+                    mtm.threshold_count++;
+                    }
+
+                    else
+                    {
+                    mtm.threshold_count=0;
+                    }
 
 
-						  if((mtm.pump_speed<mtm.u_pump_test_crit)&&(mtm.pump_speed>2500))
-						  {
-							  mtm.threshold_count++;
-						  }
+                    if(mtm.threshold_count>2)
+                    {
+                    mtm.update_state_flag=1;
+                    mtm.engine_state=INITIAL_STAGE;
+                    //START_VALVE_OFF ;
+                    //MAIN_VALVE_OFF;
+                    }
 
-						  else
-						  {
-							  mtm.threshold_count=0;
-						  }
-
-
-						  if(mtm.threshold_count>2)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							  //START_VALVE_OFF ;
-							  //MAIN_VALVE_OFF;
-						  }
-
-					}
+                }
 				break;
-
-
 				case(R500_PRS_KBM):
-					{
-					  if (mtm.update_state_flag)
-						  {
-
-							  mtm.update_state_flag=0;
-
-
-							  mtm.work_count=0;
-							  mtm.threshold_count=0;
-
-							  PUMP_PWM=Pump_PWM_Correct(1450,mtm.bus_volt);//ZERO_POINT_PUMP+config.pump_test_pwm;
-							  //START_VALVE_ON ;
-						  }
-
-
-						  if(mtm.work_count>40)
-						  {
-
-
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							  //START_VALVE_OFF ;
-
-						  }
-
-
-						  mtm.work_count++;
-
-
-						  if((mtm.pump_speed<3500)&&(mtm.pump_speed>2500))
-						  {
-							  mtm.threshold_count++;
-						  }
-
-						  else
-						  {
-							  mtm.threshold_count=0;
-						  }
-
-
-						  if(mtm.threshold_count>2)
-						  {
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							  //START_VALVE_OFF ;
-						  }
-					}
 				break;
-
 				case(R500_PRS_TRV):
-					{
-					  if (mtm.update_state_flag)
-						  {
-
-							  mtm.update_state_flag=0;
-
-
-							  mtm.work_count=0;
-
-							  PUMP_PWM=ZERO_POINT_PUMP+config.pump_test_pwm;
-							  START_VALVE_ON ;
-						  }
-
-
-						  if(mtm.work_count>20)
-						  {
-
-
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							  START_VALVE_OFF ;
-
-						  }
-
-						  mtm.work_count++;
-					}
 				break;
-
-
 				case(R1):
-					{
-					  if (mtm.update_state_flag)
-						  {
-
-							  mtm.update_state_flag=0;
-
-
-							  mtm.work_count=0;
-							  mtm.threshold_count=0;
-
-							  PUMP_PWM=Pump_PWM_Correct(1250,mtm.bus_volt);//ZERO_POINT_PUMP+config.pump_test_pwm;
-
-							 PUMP2_PWM=Pump_PWM_Correct_BIDIR(1200,mtm.bus_volt);//ZERO_POINT_PUMP+config.pump_test_pwm;
-
-							  ADG_ON ;
-						  }
-
-
-						  if(mtm.work_count>10)
-						  {
-
-
-							  mtm.update_state_flag=1;
-							  mtm.engine_state=INITIAL_STAGE;
-							PUMP_PWM = ZERO_POINT_PUMP;
-							PUMP2_PWM=ZERO_POINT_PUMP2;
-							  ADG_OFF ;
-
-						  }
-
-
-						  mtm.work_count++;
-
-
-					}
 				break;
-
-
 			}
-
 		break;
 //////////////////////////////////////////////////////////////////////////////////////////////
 		case(STAGE_VENT)://вент
 			switch(config.engine_type)
 			{
 				case(R40):
-				{
-
-				}
 				break;
 				case(R500):
 				{
 					if(mtm.update_state_flag)
 					{
-						mtm.update_state_flag=0;
+						mtm.update_state_flag = 0;
 
-						mtm.next_setpoint=config.n1_vent;
+						mtm.next_setpoint = config.n1_vent;
 
-						mtm.relevant_setpoint=1200;
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
+						mtm.relevant_setpoint = 1200;
+						STARTER_PWM = ZERO_POINT_STARTER_WORK;
 
 
-						pid_starter.integrator=(((float)config.starter_min)/1000.00);
+						pid_starter.integrator = (((float)config.starter_min) / 1000.00);
 
-						mtm.work_count=0;
-						mtm.starter_move_count=0;
-						mtm.threshold_count=0;
+						mtm.work_count = 0;
+						mtm.starter_move_count = 0;
+						mtm.threshold_count = 0;
 					}
 
-					if (mtm.work_count<10)
+					if (mtm.work_count < 10)
 					{
 					  mtm.work_count++;
 					}
 					else
 					{
-						if ((mtm.rotor_speed>2000)&&(mtm.starter_move_count<10))
+						if ((mtm.rotor_speed >= 2000) && (mtm.starter_move_count < 10))
 						{
 							mtm.starter_move_count++;
 						}
 
-						if(mtm.starter_move_count>5)
+						if(mtm.starter_move_count > 5)
 						{
-							mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
+							mtm.relevant_setpoint = Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
 																	 config.starter_rate,config.starter_rate);
 
-							STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint,mtm.rotor_speed,0,1000);
+							STARTER_PWM = PIDController_Update(&pid_starter, mtm.relevant_setpoint, mtm.rotor_speed, 0, 0);
+							//starterpwm = PIDController_Update(&pid_starter, mtm.relevant_setpoint, mtm.rotor_speed, 0, 0);
 						}
 						else
 						{
-							if   (STARTER_PWM<((config.starter_min)+1000))
+							if   (STARTER_PWM < config.starter_min)
 							{
-								if((STARTER_PWM+20)<=((config.starter_min)+1000))
+								if((STARTER_PWM + 5) <= (config.starter_min))
 								{
-									STARTER_PWM= STARTER_PWM+20;
+								    STARTER_PWM = STARTER_PWM + 5;
 								}
 								else
 								{
-									STARTER_PWM= ((config.starter_min)+1000);
+								    STARTER_PWM = config.starter_min;
 								}
 							}
 						}
 
-						if(mtm.t_real<config.t_vent)
+						if(mtm.t_real < config.t_vent)
 						{
-							if(mtm.threshold_count>config.time_vent*REGULATION_FREQ)
+							if(mtm.threshold_count > config.time_vent * REGULATION_FREQ)
 							 {
-								 mtm.update_state_flag=1;
-								 mtm.engine_state=INITIAL_STAGE;
+								 mtm.update_state_flag = 1;
+								 mtm.engine_state = INITIAL_STAGE;
 							 }
 							else
 							{
@@ -5365,220 +4103,11 @@ uint8_t Regulation()
 				}
 				break;
 				case(R500_PRS_KBM):
-				{
-					if(mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.next_setpoint=config.n1_vent;
-
-						mtm.relevant_setpoint=1200;
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-
-
-						pid_starter.integrator=(((float)config.starter_min)/1000.00);
-
-						mtm.work_count=0;
-						mtm.starter_move_count=0;
-						mtm.threshold_count=0;
-
-					}
-
-					if (mtm.work_count<10)
-					{
-					  mtm.work_count++;
-					}
-					else
-					{
-						if ((mtm.rotor_speed>2000)&&(mtm.starter_move_count<10))
-						{
-							mtm.starter_move_count++;
-						}
-
-						if(mtm.starter_move_count>5)
-						{
-							mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
-															 config.starter_rate,config.starter_rate);
-
-							STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint,mtm.rotor_speed,0,1000);
-						}
-						else
-						{
-							if   (STARTER_PWM<((config.starter_min)+1000))
-							{
-								if((STARTER_PWM+20)<=((config.starter_min)+1000))
-								{
-									STARTER_PWM= STARTER_PWM+20;
-								}
-								else
-								{
-									STARTER_PWM= ((config.starter_min)+1000);
-								}
-							}
-						}
-
-
-
-
-
-						if(mtm.t_real<config.t_vent)
-						{
-							if(mtm.threshold_count>config.time_vent*REGULATION_FREQ)
-							{
-								mtm.update_state_flag=1;
-								mtm.engine_state=INITIAL_STAGE;
-							}
-							else
-							{
-								mtm.threshold_count++;
-							}
-						}
-					}
-
-				}
 				break;
 				case(R500_PRS_TRV):
-				{
-					if(mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.next_setpoint=config.n1_vent;
-
-						mtm.relevant_setpoint=1200;
-
-						pid_starter.integrator=(((float)config.starter_min)/1000.00);
-
-						mtm.work_count=0;
-						mtm.starter_move_count=0;
-						mtm.threshold_count=0;
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-					}
-
-					if (mtm.work_count<10)
-					{
-						mtm.work_count++;
-					}
-					else
-					{
-						if ((mtm.rotor_speed>2000)&&(mtm.starter_move_count<10))
-						{
-							mtm.starter_move_count++;
-						}
-
-						if(mtm.starter_move_count>5)
-						{
-							mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
-																 config.starter_rate,config.starter_rate);
-
-							STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint,mtm.rotor_speed,0,1000);
-						}
-						else
-						{
-							if   (STARTER_PWM<((config.starter_min)+1000))
-							{
-								if((STARTER_PWM+20)<=((config.starter_min)+1000))
-								{
-									STARTER_PWM= STARTER_PWM+20;
-								}
-								else
-								{
-									STARTER_PWM= ((config.starter_min)+1000);
-								}
-							}
-						}
-
-						if(mtm.t_real<config.t_vent)
-						{
-							if(mtm.threshold_count>config.time_vent*REGULATION_FREQ)
-							{
-								mtm.update_state_flag=1;
-								mtm.engine_state=INITIAL_STAGE;
-							}
-							else
-							{
-								mtm.threshold_count++;
-							}
-						}
-					}
-				}
 				break;
 				case(R1):
-				{
-					if(mtm.update_state_flag)
-					{
-						mtm.update_state_flag=0;
-
-						mtm.next_setpoint=config.n1_vent;
-
-						mtm.relevant_setpoint=1200;
-
-
-
-						pid_starter.integrator=(((float)config.starter_min)/1000.00);
-
-						mtm.work_count=0;
-						mtm.starter_move_count=0;
-						mtm.threshold_count=0;
-
-						STARTER_PWM=ZERO_POINT_STARTER_WORK;
-
-					}
-
-					if (mtm.work_count<10)
-					{
-						mtm.work_count++;
-					}
-					else
-					{
-						if ((mtm.rotor_speed>2000)&&(mtm.starter_move_count<10))
-						{
-							mtm.starter_move_count++;
-						}
-
-						if(mtm.starter_move_count>5)
-						{
-							mtm.relevant_setpoint=Get_next_setpoint(mtm.next_setpoint,mtm.relevant_setpoint,
-														 config.starter_rate,config.starter_rate);
-
-							STARTER_PWM=PIDController_Update(&pid_starter,mtm.relevant_setpoint,mtm.rotor_speed,0,1000);
-						}
-						else
-						{
-							if   (STARTER_PWM<((config.starter_min)+1000))
-							{
-								if((STARTER_PWM+20)<=((config.starter_min)+1000))
-								{
-									STARTER_PWM= STARTER_PWM+20;
-								}
-								else
-								{
-									STARTER_PWM= ((config.starter_min)+1000);
-								}
-							}
-						}
-
-
-
-
-
-						if(mtm.t_real<config.t_vent)
-						{
-							if(mtm.threshold_count>config.time_vent*REGULATION_FREQ)
-							{
-								mtm.update_state_flag=1;
-								mtm.engine_state=INITIAL_STAGE;
-							}
-							else
-							{
-								mtm.threshold_count++;
-							}
-						}
-					}
-
-				}
 				break;
-
 			}
 		break;
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,10 @@
 #include "flash_modul.h"
 #include "CAN.h"
+#include "starter.h"
+#include "pump.h"
+
+#define PUMP_PWM       pump.targetspeed
+#define STARTER_PWM    starter.targetspeed
 
 FDCAN_TxHeaderTypeDef TxHeader_tm;
 FDCAN_TxHeaderTypeDef TxHeader_ver;
